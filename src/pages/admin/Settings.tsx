@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, Lock, User, Globe, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
@@ -19,11 +19,59 @@ const Settings: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
 
-  // Notification state
   const [emailNotifs, setEmailNotifs] = useState(profile?.newsletter_subscribed ?? true);
   const [savingNotifs, setSavingNotifs] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications'>('profile');
+  // Site Configuration state
+  const [contactEmail, setContactEmail] = useState('');
+  const [savingConfig, setSavingConfig] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'site_config'>('profile');
+
+  useEffect(() => {
+    const fetchSiteSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'contact_recipient_email')
+          .single();
+        if (data?.value) {
+          setContactEmail(data.value);
+        }
+      } catch (err) {
+        console.error('Error loading setting:', err);
+      }
+    };
+    if (activeTab === 'site_config') {
+      fetchSiteSettings();
+    }
+  }, [activeTab]);
+
+  const handleSaveSiteConfig = async () => {
+    if (!contactEmail) {
+      toast.error('Recipient email cannot be empty');
+      return;
+    }
+    setSavingConfig(true);
+    try {
+      const { error } = await supabase
+        .from('app_settings')
+        .upsert({
+          key: 'contact_recipient_email',
+          value: contactEmail,
+          description: 'Recipient email for contact submissions',
+          updated_at: new Date().toISOString()
+        });
+      if (error) throw error;
+      toast.success('Site settings saved!');
+    } catch (err: any) {
+      toast.error('Failed to save settings: ' + err.message);
+      console.error(err);
+    } finally {
+      setSavingConfig(false);
+    }
+  };
 
   const handleSaveProfile = async () => {
     if (!user) return;
@@ -100,6 +148,7 @@ const Settings: React.FC = () => {
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'security', label: 'Security', icon: Lock },
     { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'site_config', label: 'Site Config', icon: Globe },
   ] as const;
 
   return (
@@ -238,6 +287,40 @@ const Settings: React.FC = () => {
               <Check className="w-4 h-4" />
             )}
             {savingNotifs ? 'Saving...' : 'Save Preferences'}
+          </button>
+        </div>
+      )}
+
+      {/* Site Config Tab */}
+      {activeTab === 'site_config' && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-5">
+          <h3 className="font-semibold text-gray-900 dark:text-white">Site Configuration</h3>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              Contact Form Recipient Email
+            </label>
+            <input
+              type="email"
+              value={contactEmail}
+              onChange={(e) => setContactEmail(e.target.value)}
+              className={inputClass}
+              placeholder="e.g. faithamplifiers@gmail.com"
+            />
+            <p className="text-xs text-gray-400 mt-1.5">
+              All messages submitted through the contact form will be delivered to this email address.
+            </p>
+          </div>
+          <button
+            onClick={handleSaveSiteConfig}
+            disabled={savingConfig}
+            className="btn btn-primary flex items-center gap-2 disabled:opacity-60"
+          >
+            {savingConfig ? (
+              <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+            ) : (
+              <Check className="w-4 h-4" />
+            )}
+            {savingConfig ? 'Saving...' : 'Save Configuration'}
           </button>
         </div>
       )}

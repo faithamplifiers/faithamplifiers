@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { Link } from 'react-router-dom';
+
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import PromptDialog from '../../components/ui/PromptDialog';
 import { useDropzone } from 'react-dropzone';
@@ -22,7 +24,8 @@ import {
   ListOrdered,
   Check,
   X,
-  Search
+  Search,
+  Crown
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -351,6 +354,30 @@ const EventManager = () => {
   };
 
   const inputClasses = "w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:ring-2 focus:ring-secondary focus:border-transparent transition-all";
+
+  const isPrivileged = profile?.role === 'event_organizer' || profile?.role === 'admin' || profile?.role === 'super_admin';
+
+  if (!isPrivileged) {
+    return (
+      <div className="max-w-2xl mx-auto py-12 px-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-150 dark:border-gray-700 shadow-sm text-center space-y-6">
+        <div className="w-16 h-16 bg-secondary/15 rounded-2xl flex items-center justify-center mx-auto text-secondary animate-bounce">
+          <Crown className="w-8 h-8" />
+        </div>
+        <h2 className="text-2xl font-black text-gray-900 dark:text-white">Upgrade Required</h2>
+        <p className="text-gray-650 dark:text-gray-405 max-w-md mx-auto text-sm leading-relaxed">
+          Creating and managing events is exclusive to our <strong>Event & Services Privilege</strong> plan. Upgrade today to list your services, receive bookings, and host events!
+        </p>
+        <div className="pt-2">
+          <Link
+            to="/dashboard/upgrade"
+            className="btn btn-secondary inline-flex items-center gap-2 font-bold px-6 py-2.5 shadow-lg shadow-secondary/20"
+          >
+            Explore Upgrade Plans
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

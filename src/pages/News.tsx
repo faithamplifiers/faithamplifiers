@@ -14,6 +14,24 @@ const News: React.FC = () => {
 
   const { data: articles, error, isLoading, refetch } = useQuery({ queryKey: ['articles'], queryFn: fetchNews });
 
+  const { data: dbHeader } = useQuery({
+    queryKey: ['page-sections-news'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('page_sections')
+        .select('*')
+        .eq('page_slug', 'news')
+        .eq('section', 'hero')
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const heroData = dbHeader?.content as any || {};
+  const heroTitle = heroData.title || 'Gospel News & Articles';
+  const heroSubtitle = heroData.subtitle || 'Stay informed with the latest happenings in the gospel community, inspiring stories, and spiritual insights.';
+
   // Filter articles based on category and search query
   const filteredArticles = articles?.filter(article => {
     const matchesCategory = activeCategory === 'all' || article.category === activeCategory;
@@ -41,9 +59,9 @@ const News: React.FC = () => {
       {/* Page header */}
       <div className="bg-primary text-white py-16">
         <div className="container-custom">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">Gospel News & Articles</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">{heroTitle}</h1>
           <p className="text-xl text-gray-200 max-w-3xl">
-            Stay informed with the latest happenings in the gospel community, inspiring stories, and spiritual insights.
+            {heroSubtitle}
           </p>
         </div>
       </div>

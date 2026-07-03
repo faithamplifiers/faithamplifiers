@@ -4,6 +4,7 @@ import { Users, Heart, Globe, Award } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { CMSSectionRenderer } from '../components/CMSSectionRenderer';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Heart: <Heart className="w-8 h-8 text-secondary" />,
@@ -37,13 +38,30 @@ const defaultData = {
 };
 
 const About: React.FC = () => {
-  const { data: rows, isLoading } = useQuery({
+  // 1. Fetch from the CMS pages table
+  const { data: page, isLoading: isCmsLoading } = useQuery({
+    queryKey: ['cms-about-page'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pages')
+        .select('*')
+        .eq('slug', 'about')
+        .eq('status', 'published')
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // 2. Fetch from legacy about_page table (fallback if CMS page slug='about' is not present or configured with sections)
+  const { data: rows, isLoading: isLegacyLoading } = useQuery({
     queryKey: ['about_page'],
     queryFn: async () => {
       const { data, error } = await supabase.from('about_page').select('*');
       if (error) throw error;
       return data;
-    }
+    },
+    enabled: !page || !page.content
   });
 
   const getSection = (key: string) => {
@@ -51,7 +69,7 @@ const About: React.FC = () => {
     return row?.content || (defaultData as any)[key];
   };
 
-  if (isLoading) {
+  if (isCmsLoading || (isLegacyLoading && (!page || !page.content))) {
     return (
       <div className="pt-32 flex justify-center items-center min-h-screen">
         <LoadingSpinner size="lg" className="text-secondary" />
@@ -59,6 +77,29 @@ const About: React.FC = () => {
     );
   }
 
+  // Parse CMS page sections if present
+  let cmsSections: any[] | null = null;
+  if (page?.content) {
+    try {
+      const parsed = JSON.parse(page.content);
+      if (Array.isArray(parsed)) {
+        cmsSections = parsed;
+      }
+    } catch (e) {
+      cmsSections = null;
+    }
+  }
+
+  // If page content exists in CMS, render it
+  if (cmsSections) {
+    return (
+      <div className="pt-20 bg-light-gray dark:bg-gray-900 min-h-screen">
+        <CMSSectionRenderer sections={cmsSections} />
+      </div>
+    );
+  }
+
+  // Otherwise, fall back to legacy About grid layout
   const hero = getSection('hero');
   const mission = getSection('mission');
   const vision = getSection('vision');

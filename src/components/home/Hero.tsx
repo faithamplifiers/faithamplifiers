@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabase';
+
 interface Slide {
   id: number;
   title: string;
@@ -11,12 +14,12 @@ interface Slide {
   buttonText: string;
 }
 
-const slides: Slide[] = [
+const defaultSlides: Slide[] = [
   {
     id: 1,
     title: 'Amplify Your Faith Journey',
     subtitle: 'Discover the latest gospel news, events, and resources to strengthen your spiritual walk.',
-    image: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80',
+    image: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=1170&q=80',
     link: '/news',
     buttonText: 'Explore News',
   },
@@ -24,7 +27,7 @@ const slides: Slide[] = [
     id: 2,
     title: 'Professional Services for Ministry',
     subtitle: 'From livestreaming to event production, we provide the tools you need to share your message.',
-    image: 'https://images.unsplash.com/photo-1603731125896-1e4ce9d4b6b5?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80',
+    image: 'https://images.unsplash.com/photo-1603731125896-1e4ce9d4b6b5?auto=format&fit=crop&w=1170&q=80',
     link: '/services',
     buttonText: 'View Services',
   },
@@ -32,13 +35,46 @@ const slides: Slide[] = [
     id: 3,
     title: 'Connect with Gospel Events',
     subtitle: 'Find and promote concerts, workshops, and faith-based gatherings in your community.',
-    image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80',
+    image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=1170&q=80',
     link: '/events',
     buttonText: 'Discover Events',
   },
 ];
 
 const Hero: React.FC = () => {
+  const { data: dbSlides } = useQuery({
+    queryKey: ['home-hero-slides'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('page_sections')
+        .select('*')
+        .eq('page_slug', 'home')
+        .in('section', ['hero_slide_1', 'hero_slide_2', 'hero_slide_3']);
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  const getSlideData = (slideKey: string, defaultSlide: Slide): Slide => {
+    const dbSlide = dbSlides?.find(s => s.section === slideKey);
+    if (!dbSlide?.content) return defaultSlide;
+    const content = dbSlide.content as any;
+    return {
+      id: defaultSlide.id,
+      title: content.title || defaultSlide.title,
+      subtitle: content.subtitle || defaultSlide.subtitle,
+      image: content.image || defaultSlide.image,
+      link: content.link || defaultSlide.link,
+      buttonText: content.buttonText || defaultSlide.buttonText,
+    };
+  };
+
+  const slides: Slide[] = [
+    getSlideData('hero_slide_1', defaultSlides[0]),
+    getSlideData('hero_slide_2', defaultSlides[1]),
+    getSlideData('hero_slide_3', defaultSlides[2]),
+  ];
+
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
 

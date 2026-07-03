@@ -14,6 +14,24 @@ const Resources: React.FC = () => {
 
   const { data: resources, error, isLoading, refetch } = useQuery({ queryKey: ['resources'], queryFn: fetchResources });
 
+  const { data: dbHeader } = useQuery({
+    queryKey: ['page-sections-resources'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('page_sections')
+        .select('*')
+        .eq('page_slug', 'resources')
+        .eq('section', 'hero')
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const heroData = dbHeader?.content as any || {};
+  const heroTitle = heroData.title || 'Faith Resources';
+  const heroSubtitle = heroData.subtitle || 'Discover a wealth of spiritual content to strengthen your faith journey and ministry.';
+
   const { data: dbCategories = [] } = useQuery({
     queryKey: ['content_categories'],
     queryFn: async () => {
@@ -68,9 +86,9 @@ const Resources: React.FC = () => {
       {/* Hero Section */}
       <div className="bg-primary text-white py-16">
         <div className="container-custom">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">Faith Resources</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">{heroTitle}</h1>
           <p className="text-xl text-gray-200 max-w-3xl">
-            Discover a wealth of spiritual content to strengthen your faith journey and ministry.
+            {heroSubtitle}
           </p>
         </div>
       </div>

@@ -13,10 +13,12 @@ import Directory from '../../pages/Directory';
 import Resources from '../../pages/Resources';
 import About from '../../pages/About';
 import Contact from '../../pages/Contact';
+import DynamicPage from '../../pages/DynamicPage';
 import Login from '../../pages/auth/Login';
 import Register from '../../pages/auth/Register';
 import ForgotPassword from '../../pages/auth/ForgotPassword';
 import ResetPassword from '../../pages/auth/ResetPassword';
+import EmailVerified from '../../pages/auth/EmailVerified';
 
 const PublicLayout: React.FC = () => {
   return (
@@ -35,10 +37,13 @@ const PublicLayout: React.FC = () => {
           <Route path="/resources" element={<Resources />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/p/:slug" element={<DynamicPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/auth/callback" element={<EmailVerified />} />
+          <Route path="/verify-email" element={<EmailVerified />} />
         </Routes>
       </main>
       <Footer />

@@ -16,10 +16,12 @@ import {
   Calendar,
   Grid,
   Activity,
-  Info
+  Info,
+  Mail
 } from 'lucide-react';
 import Logo from '../../components/ui/Logo';
 import ThemeToggle from '../../components/ui/ThemeToggle';
+import ContactMessages from './ContactMessages';
 
 // Admin dashboard components
 import DashboardHome from '../dashboard/DashboardHome';
@@ -34,6 +36,20 @@ import ServiceManager from '../dashboard/ServiceManager';
 import AboutPageEditor from './AboutPageEditor';
 import { supabase } from '../../lib/supabase';
 import { useQuery } from '@tanstack/react-query';
+import BookingsManager from './BookingsManager';
+import PagesManager from './PagesManager';
+import PageEditorsList from './PageEditorsList';
+import PageSectionEditor, {
+  HOME_PAGE_CONFIG,
+  CONTACT_PAGE_CONFIG,
+  NEWS_PAGE_CONFIG,
+  EVENTS_PAGE_CONFIG,
+  SERVICES_PAGE_CONFIG,
+  DIRECTORY_PAGE_CONFIG,
+  RESOURCES_PAGE_CONFIG
+} from './PageSectionEditor';
+import { FileEdit } from 'lucide-react';
+
 
 interface NavItem {
   name: string;
@@ -46,7 +62,10 @@ const navigation: NavItem[] = [
   { name: 'Content', icon: FileText, href: '/fa-admin/content' },
   { name: 'Events', icon: Calendar, href: '/fa-admin/events' },
   { name: 'Services', icon: Grid, href: '/fa-admin/services' },
-  { name: 'About Page', icon: Info, href: '/fa-admin/about' },
+  { name: 'Messages', icon: Mail, href: '/fa-admin/messages' },
+  { name: 'Bookings', icon: Calendar, href: '/fa-admin/bookings' },
+  { name: 'Pages CMS', icon: FileText, href: '/fa-admin/pages' },
+  { name: 'Page Editors', icon: FileEdit, href: '/fa-admin/page-editors' },
   { name: 'Users', icon: Users, href: '/fa-admin/users' },
   { name: 'Analytics', icon: BarChart2, href: '/fa-admin/analytics' },
   { name: 'Activities', icon: Activity, href: '/fa-admin/activities' },
@@ -218,7 +237,18 @@ const AdminDashboard: React.FC = () => {
             <Route path="/content/*" element={<ContentManager isAdmin />} />
             <Route path="/events/*" element={<EventManager />} />
             <Route path="/services/*" element={<ServiceManager />} />
-            <Route path="/about" element={<AboutPageEditor />} />
+            <Route path="/messages" element={<ContactMessages />} />
+            <Route path="/bookings" element={<BookingsManager />} />
+            <Route path="/pages" element={<PagesManager />} />
+            <Route path="/page-editors" element={<PageEditorsList />} />
+            <Route path="/page-editors/home" element={<PageSectionEditor config={HOME_PAGE_CONFIG} />} />
+            <Route path="/page-editors/about" element={<AboutPageEditor />} />
+            <Route path="/page-editors/contact" element={<PageSectionEditor config={CONTACT_PAGE_CONFIG} />} />
+            <Route path="/page-editors/news" element={<PageSectionEditor config={NEWS_PAGE_CONFIG} />} />
+            <Route path="/page-editors/events" element={<PageSectionEditor config={EVENTS_PAGE_CONFIG} />} />
+            <Route path="/page-editors/services" element={<PageSectionEditor config={SERVICES_PAGE_CONFIG} />} />
+            <Route path="/page-editors/directory" element={<PageSectionEditor config={DIRECTORY_PAGE_CONFIG} />} />
+            <Route path="/page-editors/resources" element={<PageSectionEditor config={RESOURCES_PAGE_CONFIG} />} />
             <Route path="/users/*" element={<UserManager />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/activities" element={<Activities />} />

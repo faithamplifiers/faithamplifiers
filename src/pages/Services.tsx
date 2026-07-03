@@ -17,6 +17,24 @@ const Services: React.FC = () => {
     staleTime: 30000,
   });
 
+  const { data: dbHeader } = useQuery({
+    queryKey: ['page-sections-services'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('page_sections')
+        .select('*')
+        .eq('page_slug', 'services')
+        .eq('section', 'hero')
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const heroData = dbHeader?.content as any || {};
+  const heroTitle = heroData.title || 'Professional Services';
+  const heroSubtitle = heroData.subtitle || 'Elevate your ministry with our comprehensive range of professional services designed to amplify your message and reach.';
+
   // Filter services safely
   const filteredServices = (services || [])?.filter(service => {
     if (!service) return false;
@@ -47,9 +65,9 @@ const Services: React.FC = () => {
       {/* Page header */}
       <div className="bg-primary text-white py-16">
         <div className="container-custom">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">Professional Services</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">{heroTitle}</h1>
           <p className="text-xl text-gray-200 max-w-3xl">
-            Elevate your ministry with our comprehensive range of professional services designed to amplify your message and reach.
+            {heroSubtitle}
           </p>
         </div>
       </div>
@@ -172,15 +190,17 @@ const Services: React.FC = () => {
                             <Star
                               key={i}
                               className={`w-4 h-4 ${
-                                i < Math.floor(service.rating)
-                                  ? 'text-secondary fill-current'
-                                  : 'text-gray-300'
+                                i < Math.round(service.rating || 0)
+                                  ? 'text-secondary fill-secondary'
+                                  : 'text-gray-350 dark:text-gray-655'
                               }`}
                             />
                           ))}
                         </div>
-                        <span className="ml-1 text-sm text-gray-600 dark:text-gray-400">
-                          {(service.rating || 5).toFixed(1)}
+                        <span className="ml-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                          {service.rating > 0 
+                            ? `${service.rating.toFixed(1)} (${service.ratingCount})`
+                            : 'No reviews'}
                         </span>
                       </div>
                       <span className="text-primary dark:text-secondary font-bold">

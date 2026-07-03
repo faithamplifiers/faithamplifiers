@@ -1,44 +1,82 @@
-# Project AI Session History
+# AI Session History — Faith Amplifiers Production Features
 
-This file maintains the running history and context of AI sessions for this project. 
-It exists specifically to solve the problem of "context loss" between different AI sessions, ensuring you can easily resume work directly within the workspace.
-
-## Active Ongoing Tasks
-- Implement user management edits/deletions (currently UI-only in `UserManager`).
-- Thoroughly test all Edit/Delete actions in the live application context once Supabase migrations are run.
-
-## Recent Sessions
-
-### Session: Implement Full CRUD for Content, Events, Categories, and Services (Current)
-- **Goals:**
-  1. Add Edit and Delete logic to `ContentManager.tsx`, `EventManager.tsx`, and `ServiceManager.tsx`.
-  2. Implement a unified `view` state (`list` | `editor` | `categories`) allowing managers to list, edit, and create their content.
-  3. Ensure that admins can view and manage all content regardless of ownership, while regular authors/organizers only see their own.
-  4. Create new database migrations for Supabase (`20260519000000_admin_manage_all.sql`) to introduce RLS policies allowing admins to perform these operations.
-- **Status:** Completed frontend implementations. The migration `20260519000000_admin_manage_all.sql` was successfully applied to the remote database using the Supabase MCP tool.
-
-### Session: Recovering Lost Session Context (2026-05-17 to 2026-05-18)
-- **Goals:** 
-  1. Finalizing database schema updates in Supabase to support category management and diverse media types (video, audio, image).
-  2. Updating frontend services and components (`News`, `Resources`, `ContentManager`) to dynamically fetch and display data based on the new `content_categories` table.
-  3. Aligning data models in `src/lib/api.ts` and `src/types/index.ts`.
-- **Status:** Completed. 
-
-### Session: Addressing AI Context Retention Issues (2026-04-09 to 2026-04-12)
-- **Goals:** 
-  1. Fixed Faith Amplifiers authentication routing and eliminated sign-in loops.
-  2. Restructured application routing so dashboards are top-level routes.
-  3. Implemented a seamless "Return to Website" / "Return to Dashboard" navigation flow.
-- **Status:** Completed.
-
-### Session: Supabase Integration And Optimization (2026-04-08)
-- **Goals:**
-  1. Refactored `src/lib/api.ts` to replace static mock data with Supabase queries.
-  2. Cleaned up dependency tree (removed SWR and socket.io-client in favor of React Query and Supabase Realtime).
-  3. Handled `is_approved` admin flag in UI.
-- **Status:** Completed.
+This log documents the work completed by the AI Assistant (pair-programming with Henry) during this session to implement production features.
 
 ---
-**Note to AI Agents:** 
-Before starting a new task, READ this file to understand current context. 
-At the end of your session, UPDATE this file with a summary of what you accomplished and what remains to be done.
+
+## 1. Work Completed
+
+### Phase 1: Email Verification Success Flow
+- Created `/auth/callback` and `/verify-email` routes.
+- Built a modern [EmailVerified.tsx](file:///c:/Users/Henry/Documents/faithamplifiers/src/pages/auth/EmailVerified.tsx) page with success/failure feedback states.
+- Configured dynamic redirection URL resolver (`window.location.origin`) in the SignUp form to prevent broken URL redirection during custom domain migrations.
+
+### Phase 2: Database Schema & Migrations
+- Executed migration [20260701000000_production_features.sql](file:///c:/Users/Henry/Documents/faithamplifiers/supabase/migrations/20260701000000_production_features.sql) on remote Supabase instance.
+- Configured tables, default seed values, constraints, and Row Level Security (RLS) policies for:
+  - `app_settings` (Site recipient configurations)
+  - `contact_messages` (Inquiries logs)
+  - `service_ratings` (User service reviews)
+  - `service_bookings` (Client bookings)
+  - `pages` (Dynamic marketing pages CMS)
+  - `member_plans` (Tier subscriptions & verification details)
+- Updated TypeScript types inside [database.types.ts](file:///c:/Users/Henry/Documents/faithamplifiers/src/types/database.types.ts).
+
+### Phase 3: Working Contact Form
+- Built Deno Edge Function `send-contact-email` using Resend.
+- Updated [Contact.tsx](file:///c:/Users/Henry/Documents/faithamplifiers/src/pages/Contact.tsx) to query the configurable recipient from `app_settings` and trigger the Edge Function.
+- Added [ContactMessages.tsx](file:///c:/Users/Henry/Documents/faithamplifiers/src/pages/admin/ContactMessages.tsx) to list and reply to inbox submissions.
+- Added "Site Config" tab to Admin [Settings.tsx](file:///c:/Users/Henry/Documents/faithamplifiers/src/pages/admin/Settings.tsx) to edit the default email recipient.
+
+### Phase 4: Service Rating System
+- Implemented real-time rating and reviews system.
+- Created [RatingModal.tsx](file:///c:/Users/Henry/Documents/faithamplifiers/src/components/services/RatingModal.tsx) supporting star selection, optional textual review, and ratings updates (upsert).
+- Linked ratings list and modal on [ServiceDetail.tsx](file:///c:/Users/Henry/Documents/faithamplifiers/src/pages/ServiceDetail.tsx) and [Services.tsx](file:///c:/Users/Henry/Documents/faithamplifiers/src/pages/Services.tsx).
+
+### Phase 5: Service Booking Flow
+- Created Deno Edge Function `send-booking-notification` using Resend.
+- Built [BookingModal.tsx](file:///c:/Users/Henry/Documents/faithamplifiers/src/components/services/BookingModal.tsx) supporting client details collection (pre-filled if logged in) and DB saving.
+- Integrated bookings log viewer in provider dashboard [ServiceManager.tsx](file:///c:/Users/Henry/Documents/faithamplifiers/src/pages/dashboard/ServiceManager.tsx) with status updates.
+- Created administrator's [BookingsManager.tsx](file:///c:/Users/Henry/Documents/faithamplifiers/src/pages/admin/BookingsManager.tsx) tab to track all bookings across the platform.
+
+### Phase 6: Pages CMS
+- Registered `/p/:slug` public page handler [DynamicPage.tsx](file:///c:/Users/Henry/Documents/faithamplifiers/src/pages/DynamicPage.tsx) with dynamic title/SEO meta updates.
+- Built [PagesManager.tsx](file:///c:/Users/Henry/Documents/faithamplifiers/src/pages/admin/PagesManager.tsx) CMS with draft/published toggle, slug auto-generation, and rich HTML text editing.
+
+### Phase 7: Member Upgrade & Verification
+- Designed pricing plans page [UpgradePlan.tsx](file:///c:/Users/Henry/Documents/faithamplifiers/src/pages/dashboard/UpgradePlan.tsx) with 3-tier models.
+- Built [PlanCard.tsx](file:///c:/Users/Henry/Documents/faithamplifiers/src/components/upgrade/PlanCard.tsx) and multi-step identity upload [VerificationForm.tsx](file:///c:/Users/Henry/Documents/faithamplifiers/src/components/upgrade/VerificationForm.tsx).
+- Integrated Paystack Inline script and payment handlers.
+- Implemented role guards in [EventManager.tsx](file:///c:/Users/Henry/Documents/faithamplifiers/src/pages/dashboard/EventManager.tsx) and [ServiceManager.tsx](file:///c:/Users/Henry/Documents/faithamplifiers/src/pages/dashboard/ServiceManager.tsx) for standard members.
+
+---
+
+## 2. Summary of Created & Modified Files
+
+### Created Files
+- `src/pages/auth/EmailVerified.tsx` (Verification callback landing page)
+- `src/pages/admin/ContactMessages.tsx` (Admin inbox manager)
+- `src/pages/admin/BookingsManager.tsx` (Platform bookings log)
+- `src/pages/admin/PagesManager.tsx` (Pages CMS list & editor)
+- `src/pages/DynamicPage.tsx` (SEO-friendly public dynamic page viewer)
+- `src/components/services/RatingModal.tsx` (Interactive ratings & reviews dialog)
+- `src/components/services/BookingModal.tsx` (Service booking flow form)
+- `src/components/upgrade/PlanCard.tsx` (Subscription tier card widget)
+- `src/components/upgrade/VerificationForm.tsx` (Multi-step verification/document uploader)
+- `supabase/functions/send-contact-email/index.ts` (Resend contact email function)
+- `supabase/functions/send-booking-notification/index.ts` (Resend booking alert function)
+- `docs/SETUP.md` (Detailed setups guide)
+
+### Modified Files
+- `src/components/layout/PublicLayout.tsx` (Registered auth callbacks and `/p/:slug` route)
+- `src/pages/auth/Register.tsx` (Dynamic resolver for `emailRedirectTo`)
+- `src/pages/Contact.tsx` (Saved contact submissions to DB and invoked contact edge function)
+- `src/pages/admin/AdminDashboard.tsx` (Registered routes and navigation for CMS, Messages, Bookings)
+- `src/pages/admin/Settings.tsx` (Added site config settings for recipient email)
+- `src/pages/Services.tsx` (Wired average rating stars and reviews counter dynamically)
+- `src/pages/ServiceDetail.tsx` (Integrated BookingModal, RatingModal, and reviews listing feed)
+- `src/pages/dashboard/Dashboard.tsx` (Registered "Upgrade Plan" navigation link and route)
+- `src/pages/dashboard/EventManager.tsx` (Added upgrade promo role gate)
+- `src/pages/dashboard/ServiceManager.tsx` (Added bookings management log and notification controls)
+- `src/lib/api.ts` (Added service ratings fetchers and submission methods)
+- `src/types/index.ts` (Added `ratingCount` to `Service` type)

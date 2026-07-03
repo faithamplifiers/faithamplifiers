@@ -16,6 +16,7 @@ import {
   X,
   ChevronRight,
   ExternalLink,
+  Crown
 } from 'lucide-react';
 import Logo from '../../components/ui/Logo';
 import ThemeToggle from '../../components/ui/ThemeToggle';
@@ -30,6 +31,8 @@ import UserManager from './UserManager';
 import Analytics from './Analytics';
 import Settings from './Settings';
 import Activities from './Activities';
+import UpgradePlan from './UpgradePlan';
+
 
 interface NavItem {
   name: string;
@@ -42,6 +45,7 @@ const navigation: NavItem[] = [
   { name: 'My Content', icon: FileText, href: '/dashboard/content' },
   { name: 'Events', icon: Calendar, href: '/dashboard/events' },
   { name: 'Services', icon: Briefcase, href: '/dashboard/services' },
+  { name: 'Upgrade Plan', icon: Crown, href: '/dashboard/upgrade' },
   { name: 'Members', icon: Users, href: '/dashboard/users' },
   { name: 'Analytics', icon: BarChart2, href: '/dashboard/analytics' },
   { name: 'Activities', icon: Activity, href: '/dashboard/activities' },
@@ -210,9 +214,10 @@ const Dashboard: React.FC = () => {
             <Route path="/events/*" element={<EventManager />} />
             <Route path="/services/*" element={<ServiceManager />} />
             <Route path="/users/*" element={<UserManager />} />
-            <Route path="/analytics" element={<Analytics />} />
+             <Route path="/analytics" element={<Analytics />} />
             <Route path="/activities" element={<Activities />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/upgrade" element={<UpgradePlan />} />
           </Routes>
         </main>
       </div>

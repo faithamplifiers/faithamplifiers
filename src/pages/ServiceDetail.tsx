@@ -1,14 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import { ArrowLeft, Star, Tag, User, Share2, Mail, Phone } from 'lucide-react';
+import { useAuthStore } from '../store/authStore';
+import { fetchServiceRatings } from '../lib/api';
+import { ArrowLeft, Star, Tag, User, Share2, Mail, Award, MessageSquare } from 'lucide-react';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import RatingModal from '../components/services/RatingModal';
+import BookingModal from '../components/services/BookingModal';
 import toast from 'react-hot-toast';
+import { format } from 'date-fns';
 
 const ServiceDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
   const { data: service, error, isLoading } = useQuery({
     queryKey: ['service', slug],
@@ -20,7 +29,8 @@ const ServiceDetail: React.FC = () => {
         .from('services')
         .select(`
           *,
-          provider:profiles(*)
+          provider:profiles(*),
+          service_ratings(rating_value)
         `)
         .eq('slug', slug)
         .single();
@@ -30,7 +40,8 @@ const ServiceDetail: React.FC = () => {
           .from('services')
           .select(`
             *,
-            provider:profiles(*)
+            provider:profiles(*),
+            service_ratings(rating_value)
           `)
           .eq('id', slug)
           .single();
@@ -44,6 +55,12 @@ const ServiceDetail: React.FC = () => {
     enabled: !!slug
   });
 
+  const { data: reviews = [], refetch: refetchReviews } = useQuery({
+    queryKey: ['service-reviews', service?.id],
+    queryFn: () => fetchServiceRatings(service!.id),
+    enabled: !!service?.id
+  });
+
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({ title: service?.title, url: window.location.href });
@@ -51,6 +68,20 @@ const ServiceDetail: React.FC = () => {
       navigator.clipboard.writeText(window.location.href);
       toast.success('Link copied to clipboard!');
     }
+  };
+
+  const handleRateClick = () => {
+    if (!user) {
+      toast.error('Please log in to submit a rating');
+      navigate('/login', { state: { from: window.location } });
+      return;
+    }
+    setIsRatingModalOpen(true);
+  };
+
+  const handleRatingSubmitted = () => {
+    queryClient.invalidateQueries({ queryKey: ['service', slug] });
+    refetchReviews();
   };
 
   if (isLoading) {
@@ -67,7 +98,7 @@ const ServiceDetail: React.FC = () => {
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-4">Service Not Found</h2>
           <p className="text-gray-600 dark:text-gray-400 mb-8">
-            The service you're looking for doesn't exist or has been removed.
+            The service you\'re looking for doesn\'t exist or has been removed.
           </p>
           <button onClick={() => navigate('/services')} className="btn btn-primary">
             Back to Services
@@ -86,6 +117,12 @@ const ServiceDetail: React.FC = () => {
     service.currency === 'GBP' ? '£' : '$';
 
   const providerName = service.provider?.full_name || service.provider?.username || 'Unknown Provider';
+
+  const ratingsList = (service.service_ratings || []) as any[];
+  const ratingCount = ratingsList.length;
+  const averageRating = ratingCount > 0 
+    ? ratingsList.reduce((sum, r) => sum + (r.rating_value || 0), 0) / ratingCount
+    : 0;
 
   return (
     <div className="pt-20 bg-light-gray dark:bg-gray-900 min-h-screen">
@@ -143,6 +180,72 @@ const ServiceDetail: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* Reviews Section */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-gray-700 text-left">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-secondary" />
+                  Client Reviews ({ratingCount})
+                </h2>
+                <button
+                  onClick={handleRateClick}
+                  className="btn btn-outline btn-sm text-xs py-1.5 px-3 flex items-center gap-1.5"
+                >
+                  <Star className="w-3.5 h-3.5 fill-current text-secondary" /> Write a Review
+                </button>
+              </div>
+
+              {reviews.length === 0 ? (
+                <div className="text-center py-8 text-gray-505 dark:text-gray-400">
+                  <p className="font-semibold text-sm">No reviews yet for this service.</p>
+                  <p className="text-xs text-gray-400 mt-1">Be the first to share your experience!</p>
+                </div>
+              ) : (
+                <div className="space-y-6 divide-y divide-gray-100 dark:divide-gray-750">
+                  {reviews.map((review, i) => (
+                    <div key={review.id} className={`${i > 0 ? 'pt-6' : ''} space-y-2`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center font-bold text-xs text-primary dark:text-white overflow-hidden">
+                            {review.user?.avatar ? (
+                              <img src={review.user.avatar} alt={review.user.name} className="w-full h-full object-cover" />
+                            ) : (
+                              review.user.name.charAt(0).toUpperCase()
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-gray-900 dark:text-white">{review.user.name}</p>
+                            <p className="text-[10px] text-gray-400">
+                              {format(new Date(review.createdAt), 'MMM d, yyyy')}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Stars */}
+                        <div className="flex gap-0.5">
+                          {[...Array(5)].map((_, starIndex) => (
+                            <Star
+                              key={starIndex}
+                              className={`w-3.5 h-3.5 ${
+                                starIndex < review.ratingValue
+                                  ? 'text-secondary fill-secondary'
+                                  : 'text-gray-250 dark:text-gray-650'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      {review.reviewText && (
+                        <p className="text-sm text-gray-650 dark:text-gray-300 pl-11 leading-relaxed">
+                          {review.reviewText}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Sidebar */}
@@ -156,19 +259,32 @@ const ServiceDetail: React.FC = () => {
                 <p className="text-sm text-gray-500 mt-1">Starting price</p>
               </div>
 
-              {/* Rating */}
-              <div className="flex items-center justify-center gap-2 mb-6 pb-6 border-b border-gray-100 dark:border-gray-700">
+              {/* Rating Summary */}
+              <div 
+                onClick={handleRateClick}
+                className="flex items-center justify-center gap-2 mb-6 pb-6 border-b border-gray-100 dark:border-gray-700 cursor-pointer group"
+                title="Click to rate"
+              >
                 <div className="flex">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-secondary fill-current" />
+                    <Star
+                      key={i}
+                      className={`w-5 h-5 transition-transform group-hover:scale-110 ${
+                        i < Math.round(averageRating)
+                          ? 'text-secondary fill-secondary'
+                          : 'text-gray-300 dark:text-gray-650'
+                      }`}
+                    />
                   ))}
                 </div>
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">5.0</span>
+                <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                  {averageRating > 0 ? `${averageRating.toFixed(1)} (${ratingCount})` : '0.0 (0)'}
+                </span>
               </div>
 
               {/* Details */}
               <div className="space-y-4 mb-6">
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3 text-left">
                   <Tag className="w-5 h-5 text-secondary mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="text-xs text-gray-400 uppercase font-semibold">Category</p>
@@ -177,7 +293,7 @@ const ServiceDetail: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3 text-left">
                   <User className="w-5 h-5 text-secondary mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="text-xs text-gray-400 uppercase font-semibold">Provider</p>
@@ -191,13 +307,13 @@ const ServiceDetail: React.FC = () => {
 
               {/* Actions */}
               <div className="space-y-3">
-                <Link
-                  to="/contact"
+                <button
+                  onClick={() => setIsBookingModalOpen(true)}
                   className="btn btn-secondary w-full flex items-center justify-center gap-2"
                 >
                   <Mail className="w-4 h-4" />
                   Book This Service
-                </Link>
+                </button>
                 <button
                   onClick={handleShare}
                   className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-secondary hover:text-secondary transition-colors text-sm font-medium"
@@ -210,6 +326,27 @@ const ServiceDetail: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Rating Modal */}
+      {service && user && (
+        <RatingModal
+          isOpen={isRatingModalOpen}
+          onClose={() => setIsRatingModalOpen(false)}
+          serviceId={service.id}
+          userId={user.id}
+          onRatingSubmitted={handleRatingSubmitted}
+        />
+      )}
+
+      {/* Booking Modal */}
+      {service && (
+        <BookingModal
+          isOpen={isBookingModalOpen}
+          onClose={() => setIsBookingModalOpen(false)}
+          serviceId={service.id}
+          serviceTitle={service.title}
+        />
+      )}
     </div>
   );
 };

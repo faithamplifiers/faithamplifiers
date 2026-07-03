@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { Link } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import PromptDialog from '../../components/ui/PromptDialog';
@@ -19,7 +20,9 @@ import {
   ListOrdered,
   Check,
   X,
-  Search
+  Search,
+  Calendar,
+  Crown
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -31,6 +34,7 @@ interface ServiceForm {
   category: string;
   price: string;
   currency: 'USD' | 'NGN' | 'EUR' | 'GBP';
+  booking_notifications_enabled: boolean;
 }
 
 const currencies = [
@@ -43,7 +47,7 @@ const currencies = [
 const ServiceManager = () => {
   const { user, profile } = useAuthStore();
   const actualIsAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
-  const [view, setView] = useState<'list' | 'editor' | 'categories'>('list');
+  const [view, setView] = useState<'list' | 'editor' | 'categories' | 'bookings'>('list');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [portfolioImages, setPortfolioImages] = useState<File[]>([]);
@@ -86,14 +90,48 @@ const ServiceManager = () => {
     }
   });
 
+  const { data: providerBookings = [], isLoading: bookingsLoading } = useQuery({
+    queryKey: ['provider_bookings', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      let query = supabase.from('service_bookings').select(`
+        *,
+        service:services!inner(title, provider_id)
+      `);
+      if (!actualIsAdmin) {
+        query = query.eq('service.provider_id', user.id);
+      }
+      const { data, error } = await query.order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && view === 'bookings'
+  });
+
   const { register, handleSubmit, reset, watch, setValue, formState: { isDirty } } = useForm<ServiceForm>({
     defaultValues: {
-      currency: 'USD'
+      currency: 'USD',
+      booking_notifications_enabled: true
     }
   });
 
+  const handleUpdateBookingStatus = async (bookingId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('service_bookings')
+        .update({ status: newStatus })
+        .eq('id', bookingId);
+      if (error) throw error;
+      toast.success('Booking status updated!');
+      queryClient.invalidateQueries({ queryKey: ['provider_bookings'] });
+    } catch (err: any) {
+      toast.error('Failed to update status: ' + err.message);
+    }
+  };
+
   const selectedCurrency = watch('currency');
   const currencySymbol = currencies.find(c => c.code === selectedCurrency)?.symbol || '$';
+
 
   const { getRootProps, getInputProps } = useDropzone({
     accept: {
@@ -157,8 +195,10 @@ const ServiceManager = () => {
         provider_id: user.id,
         portfolio_images: [...existingImages, ...imageUrls],
         status: 'active',
-        slug: slug
+        slug: slug,
+        booking_notifications_enabled: data.booking_notifications_enabled
       };
+
 
       if (editingId) {
         const { error: serviceError } = await supabase.from('services').update(insertData).eq('id', editingId);
@@ -191,10 +231,12 @@ const ServiceManager = () => {
     setValue('category', service.category);
     setValue('price', service.price);
     setValue('currency', service.currency);
+    setValue('booking_notifications_enabled', service.booking_notifications_enabled ?? true);
     setExistingImages(service.portfolio_images || []);
     setPortfolioImages([]);
     setView('editor');
   };
+
 
   const deleteService = (id: string) => {
     setDeleteConfirmId(id);
@@ -260,6 +302,30 @@ const ServiceManager = () => {
 
   const inputClasses = "w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:ring-2 focus:ring-secondary focus:border-transparent transition-all";
 
+  const isPrivileged = profile?.role === 'event_organizer' || profile?.role === 'admin' || profile?.role === 'super_admin';
+
+  if (!isPrivileged) {
+    return (
+      <div className="max-w-2xl mx-auto py-12 px-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-150 dark:border-gray-700 shadow-sm text-center space-y-6">
+        <div className="w-16 h-16 bg-secondary/15 rounded-2xl flex items-center justify-center mx-auto text-secondary animate-bounce">
+          <Crown className="w-8 h-8" />
+        </div>
+        <h2 className="text-2xl font-black text-gray-900 dark:text-white">Upgrade Required</h2>
+        <p className="text-gray-650 dark:text-gray-405 max-w-md mx-auto text-sm leading-relaxed">
+          Creating and listing professional services is exclusive to our <strong>Event & Services Privilege</strong> plan. Upgrade today to list your services, receive bookings, and host events!
+        </p>
+        <div className="pt-2">
+          <Link
+            to="/dashboard/upgrade"
+            className="btn btn-secondary inline-flex items-center gap-2 font-bold px-6 py-2.5 shadow-lg shadow-secondary/20"
+          >
+            Explore Upgrade Plans
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
@@ -295,6 +361,15 @@ const ServiceManager = () => {
               )}
             </button>
           )}
+          <button
+            onClick={() => handleNavigation(() => {
+              setView(view === 'bookings' ? 'list' : 'bookings');
+              setEditingId(null);
+            })}
+            className={`btn ${view === 'bookings' ? 'btn-secondary' : 'btn-outline'} flex items-center gap-2`}
+          >
+            <Calendar className="w-5 h-5" /> Bookings
+          </button>
           <button
             onClick={() => handleNavigation(() => {
               if (view === 'list') {
@@ -454,6 +529,18 @@ const ServiceManager = () => {
                 </div>
               </div>
             </div>
+            
+            <div className="flex items-center gap-2.5 pt-2">
+              <input
+                type="checkbox"
+                id="booking_notifications_enabled"
+                {...register('booking_notifications_enabled')}
+                className="h-4.5 w-4.5 rounded border-gray-300 text-secondary focus:ring-secondary cursor-pointer"
+              />
+              <label htmlFor="booking_notifications_enabled" className="text-sm font-semibold text-gray-700 dark:text-gray-305 cursor-pointer select-none">
+                Enable email notifications for new bookings
+              </label>
+            </div>
           </div>
 
           <div>
@@ -544,6 +631,77 @@ const ServiceManager = () => {
           </div>
         </div>
       </div>
+      ) : view === 'bookings' ? (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden text-left">
+          <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Service Bookings</h2>
+              <p className="text-xs text-gray-500">Track and update client requests for your services</p>
+            </div>
+            <button
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['provider_bookings'] })}
+              className="btn btn-outline btn-sm"
+            >
+              Refresh
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-750">
+              <thead className="bg-gray-50 dark:bg-gray-900/50">
+                <tr>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Client</th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Service Booked</th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Details</th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Received Date</th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-750">
+                {bookingsLoading ? (
+                  <tr>
+                    <td colSpan={5} className="p-12 text-center text-gray-400">Loading bookings...</td>
+                  </tr>
+                ) : providerBookings.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="p-12 text-center text-gray-400">No bookings received yet.</td>
+                  </tr>
+                ) : (
+                  providerBookings.map((booking: any) => (
+                    <tr key={booking.id} className="hover:bg-gray-50 dark:hover:bg-gray-750/30">
+                      <td className="px-6 py-4 text-sm">
+                        <p className="font-bold text-gray-900 dark:text-white">{booking.client_name}</p>
+                        <p className="text-xs text-gray-505 dark:text-gray-400">{booking.client_email}</p>
+                        {booking.client_phone && <p className="text-xs text-gray-400">{booking.client_phone}</p>}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-semibold text-gray-750 dark:text-gray-300">
+                        {booking.service?.title || 'Unknown Service'}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-650 dark:text-gray-405 max-w-xs truncate" title={booking.message}>
+                        {booking.message || <span className="text-gray-400 italic text-xs">No notes</span>}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {format(new Date(booking.created_at), 'MMM d, yyyy h:mm a')}
+                      </td>
+                      <td className="px-6 py-4">
+                        <select
+                          value={booking.status}
+                          onChange={(e) => handleUpdateBookingStatus(booking.id, e.target.value)}
+                          className="px-2 py-1 text-xs font-bold rounded-lg border border-gray-205 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-705 dark:text-gray-300 focus:ring-2 focus:ring-secondary outline-none capitalize"
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="confirmed">Confirmed</option>
+                          <option value="cancelled">Cancelled</option>
+                          <option value="completed">Completed</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       ) : (
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
           <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">

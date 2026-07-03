@@ -16,7 +16,8 @@ export async function fetchServices(): Promise<Service[]> {
       .from('services')
       .select(`
         *,
-        provider:profiles(*)
+        provider:profiles(*),
+        service_ratings(rating_value)
       `)
       .eq('status', 'active'));
       
@@ -25,23 +26,31 @@ export async function fetchServices(): Promise<Service[]> {
       return [];
     }
     
-    return data.map(service => ({
-      id: service.id,
-      title: service.title || 'Untitled Service',
-      slug: service.slug || service.id,
-      description: service.description || '',
-      category: (service.category || 'other') as Service['category'],
-      price: service.price,
-      currency: service.currency as Service['currency'],
-      provider: {
-        id: service.provider?.id || '',
-        name: service.provider?.full_name || service.provider?.username || 'Unknown',
-        email: '',
-        role: service.provider?.role as User['role'] || 'member',
-      },
-      coverImage: service.cover_image || (service.portfolio_images && service.portfolio_images[0]) || 'https://images.unsplash.com/photo-1542744094-24638eff58bb?auto=format&fit=crop&q=80',
-      rating: 5,
-    }));
+    return data.map(service => {
+      const ratings = (service.service_ratings || []) as any[];
+      const ratingCount = ratings.length;
+      const totalRating = ratings.reduce((sum, r) => sum + (r.rating_value || 0), 0);
+      const averageRating = ratingCount > 0 ? totalRating / ratingCount : 0;
+
+      return {
+        id: service.id,
+        title: service.title || 'Untitled Service',
+        slug: service.slug || service.id,
+        description: service.description || '',
+        category: (service.category || 'other') as Service['category'],
+        price: service.price,
+        currency: service.currency as Service['currency'],
+        provider: {
+          id: service.provider?.id || '',
+          name: service.provider?.full_name || service.provider?.username || 'Unknown',
+          email: '',
+          role: service.provider?.role as User['role'] || 'member',
+        },
+        coverImage: service.cover_url || service.cover_image || (service.portfolio_images && service.portfolio_images[0]) || 'https://images.unsplash.com/photo-1542744094-24638eff58bb?auto=format&fit=crop&q=80',
+        rating: averageRating,
+        ratingCount: ratingCount
+      };
+    });
   } catch (err) {
     console.error('Services fetch timed out or failed:', err);
     return [];
@@ -225,4 +234,69 @@ export async function fetchRecentActivity() {
     console.error('Activity fetch timed out or failed:', e);
     return [];
   }
+}
+
+export async function fetchServiceRatings(serviceId: string) {
+  const { data, error } = await supabase
+    .from('service_ratings')
+    .select(`
+      *,
+      user:profiles(*)
+    `)
+    .eq('service_id', serviceId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching service ratings:', error);
+    return [];
+  }
+
+  return data.map(rating => ({
+    id: rating.id,
+    serviceId: rating.service_id,
+    userId: rating.user_id,
+    ratingValue: rating.rating_value,
+    reviewText: rating.review_text || '',
+    createdAt: rating.created_at,
+    user: {
+      id: rating.user?.id || '',
+      name: rating.user?.full_name || rating.user?.username || 'Gospel Partner',
+      avatar: rating.user?.avatar_url || ''
+    }
+  }));
+}
+
+export async function getUserServiceRating(serviceId: string, userId: string) {
+  const { data, error } = await supabase
+    .from('service_ratings')
+    .select('*')
+    .eq('service_id', serviceId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching user service rating:', error);
+    return null;
+  }
+
+  return data;
+}
+
+export async function submitServiceRating(serviceId: string, userId: string, ratingValue: number, reviewText: string) {
+  const { data, error } = await supabase
+    .from('service_ratings')
+    .upsert({
+      service_id: serviceId,
+      user_id: userId,
+      rating_value: ratingValue,
+      review_text: reviewText,
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'service_id,user_id'
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
 }

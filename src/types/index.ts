@@ -50,6 +50,7 @@ export interface Service {
   currency: 'USD' | 'NGN' | 'EUR' | 'GBP';
   provider: User;
   rating: number;
+  ratingCount?: number;
   featured?: boolean;
   coverImage: string;
 }

@@ -11,6 +11,24 @@ const Directory: React.FC = () => {
 
   const { data: directoryListings, error, isLoading, refetch } = useQuery({ queryKey: ['directoryListings'], queryFn: fetchDirectory });
 
+  const { data: dbHeader } = useQuery({
+    queryKey: ['page-sections-directory'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('page_sections')
+        .select('*')
+        .eq('page_slug', 'directory')
+        .eq('section', 'hero')
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const heroData = dbHeader?.content as any || {};
+  const heroTitle = heroData.title || 'Gospel Business Directory';
+  const heroSubtitle = heroData.subtitle || 'Connect with trusted professionals and businesses in the gospel community.';
+
   const categories = [
     { id: 'all', name: 'All Categories' },
     { id: 'Audio Equipment', name: 'Audio Equipment' },
@@ -34,9 +52,9 @@ const Directory: React.FC = () => {
       {/* Header */}
       <div className="bg-primary text-white py-16">
         <div className="container-custom">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">Gospel Business Directory</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">{heroTitle}</h1>
           <p className="text-xl text-gray-200 max-w-3xl">
-            Connect with trusted professionals and businesses in the gospel community.
+            {heroSubtitle}
           </p>
         </div>
       </div>

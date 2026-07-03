@@ -15,6 +15,24 @@ const Events: React.FC = () => {
 
   const { data: events, error, isLoading, refetch } = useQuery({ queryKey: ['events'], queryFn: fetchEvents });
 
+  const { data: dbHeader } = useQuery({
+    queryKey: ['page-sections-events'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('page_sections')
+        .select('*')
+        .eq('page_slug', 'events')
+        .eq('section', 'hero')
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const heroData = dbHeader?.content as any || {};
+  const heroTitle = heroData.title || 'Gospel Events';
+  const heroSubtitle = heroData.subtitle || 'Discover and connect with faith-based events happening in your community and beyond.';
+
   // Filter events based on type and search query
   const filteredEvents = events?.filter(event => {
     const matchesType = activeType === 'all' || event.type === activeType;
@@ -43,9 +61,9 @@ const Events: React.FC = () => {
       {/* Page header */}
       <div className="bg-primary text-white py-16">
         <div className="container-custom">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">Gospel Events</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">{heroTitle}</h1>
           <p className="text-xl text-gray-200 max-w-3xl">
-            Discover and connect with faith-based events happening in your community and beyond.
+            {heroSubtitle}
           </p>
         </div>
       </div>
