@@ -149,6 +149,46 @@ const UpgradePlan: React.FC = () => {
     handler.openIframe();
   };
 
+  const handleCompletePaymentOnly = async () => {
+    if (!user || !memberPlan) return;
+
+    const paystackKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+
+    if (!paystackKey || !paystackLoaded || !window.PaystackPop) {
+      toast.error('Paystack SDK is not loaded. Please try again.');
+      return;
+    }
+
+    const handler = window.PaystackPop.setup({
+      key: paystackKey,
+      email: user.email,
+      amount: 500000, // ₦5,000 in kobo
+      currency: 'NGN',
+      ref: `fa_upgrade_${user.id}_${Date.now()}`,
+      metadata: {
+        user_id: user.id,
+        plan: 'event_services',
+      },
+      callback: async (response: any) => {
+        const verificationData = {
+          legalName: memberPlan.legal_name || '',
+          phone: memberPlan.phone || '',
+          address: memberPlan.address || '',
+          country: memberPlan.country || '',
+          state: memberPlan.state || '',
+          dateOfBirth: memberPlan.date_of_birth || '',
+          govIdUrl: memberPlan.gov_id_url || '',
+        };
+        await saveVerificationAndUpgrade(verificationData, response.reference);
+      },
+      onClose: () => {
+        toast('Payment window closed. You can try again anytime.');
+      },
+    });
+
+    handler.openIframe();
+  };
+
   const saveVerificationAndUpgrade = async (verificationData: VerificationData, paystackRef: string | null) => {
     if (!user) return;
 
@@ -172,17 +212,12 @@ const UpgradePlan: React.FC = () => {
 
       if (planError) throw planError;
 
-      // 2. Update user role to event_organizer
-      const { error: roleError } = await supabase
-        .from('profiles')
-        .update({ role: 'event_organizer' })
-        .eq('id', user.id);
-
-      if (roleError) {
-        console.error('Role update warning:', roleError);
+      if (paystackRef) {
+        toast.success('Payment successful! Your verification is pending admin review.');
+      } else {
+        toast.success('Verification details saved! Complete your payment to activate review.');
       }
 
-      toast.success('Upgrade successful! Your account is now being verified.');
       setShowVerification(false);
       queryClient.invalidateQueries({ queryKey: ['member_plan'] });
     } catch (err: any) {
@@ -219,6 +254,9 @@ const UpgradePlan: React.FC = () => {
     );
   }
 
+  const isEventServicesPaid = currentPlan === 'event_services' && memberPlan?.payment_status === 'paid';
+  const isEventServicesUnpaid = currentPlan === 'event_services' && memberPlan?.payment_status === 'unpaid';
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -245,8 +283,9 @@ const UpgradePlan: React.FC = () => {
           {...PLANS.event_services}
           highlighted
           badge="Most Popular"
-          isCurrentPlan={currentPlan === 'event_services'}
-          onCTAClick={() => setShowVerification(true)}
+          isCurrentPlan={isEventServicesPaid}
+          ctaLabel={isEventServicesUnpaid ? "Complete Payment" : "Upgrade & Verify"}
+          onCTAClick={isEventServicesUnpaid ? handleCompletePaymentOnly : () => setShowVerification(true)}
         />
         <PlanCard
           {...PLANS.enterprise}
@@ -262,14 +301,24 @@ const UpgradePlan: React.FC = () => {
           <p className="text-lg font-black text-primary dark:text-secondary mt-1 capitalize">
             {memberPlan.plan?.replace(/_/g, ' ') || 'Blog Basics'}
           </p>
-          {memberPlan.verification_status === 'pending' && (
+          {memberPlan.payment_status === 'unpaid' && memberPlan.plan === 'event_services' && (
+            <p className="text-xs text-red-500 mt-1 font-semibold">
+              ⚠️ Unpaid — please complete your payment of ₦5,000 to initiate verification.
+            </p>
+          )}
+          {memberPlan.payment_status === 'paid' && memberPlan.verification_status === 'pending' && (
             <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-semibold">
               ⏳ Verification in progress — our team will review your submission shortly.
             </p>
           )}
-          {memberPlan.verification_status === 'verified' && (
+          {memberPlan.payment_status === 'paid' && memberPlan.verification_status === 'verified' && (
             <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-semibold">
               ✅ Verified account
+            </p>
+          )}
+          {memberPlan.verification_status === 'rejected' && (
+            <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-semibold">
+              ❌ Verification rejected. Please update details or contact support.
             </p>
           )}
         </div>

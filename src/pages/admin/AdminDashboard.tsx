@@ -48,7 +48,9 @@ import PageSectionEditor, {
   DIRECTORY_PAGE_CONFIG,
   RESOURCES_PAGE_CONFIG
 } from './PageSectionEditor';
-import { FileEdit } from 'lucide-react';
+import VerificationsManager from './VerificationsManager';
+import FinanceManager from './FinanceManager';
+import { FileEdit, ShieldCheck, CreditCard } from 'lucide-react';
 
 
 interface NavItem {
@@ -66,6 +68,8 @@ const navigation: NavItem[] = [
   { name: 'Bookings', icon: Calendar, href: '/fa-admin/bookings' },
   { name: 'Pages CMS', icon: FileText, href: '/fa-admin/pages' },
   { name: 'Page Editors', icon: FileEdit, href: '/fa-admin/page-editors' },
+  { name: 'Verifications', icon: ShieldCheck, href: '/fa-admin/verifications' },
+  { name: 'Finance', icon: CreditCard, href: '/fa-admin/finance' },
   { name: 'Users', icon: Users, href: '/fa-admin/users' },
   { name: 'Analytics', icon: BarChart2, href: '/fa-admin/analytics' },
   { name: 'Activities', icon: Activity, href: '/fa-admin/activities' },
@@ -249,6 +253,8 @@ const AdminDashboard: React.FC = () => {
             <Route path="/page-editors/services" element={<PageSectionEditor config={SERVICES_PAGE_CONFIG} />} />
             <Route path="/page-editors/directory" element={<PageSectionEditor config={DIRECTORY_PAGE_CONFIG} />} />
             <Route path="/page-editors/resources" element={<PageSectionEditor config={RESOURCES_PAGE_CONFIG} />} />
+            <Route path="/verifications" element={<VerificationsManager />} />
+            <Route path="/finance" element={<FinanceManager />} />
             <Route path="/users/*" element={<UserManager />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/activities" element={<Activities />} />

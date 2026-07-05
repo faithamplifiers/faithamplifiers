@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import {
   Users,
@@ -19,23 +19,55 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchDashboardStats, fetchRecentActivity } from '../../lib/api';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import { supabase } from '../../lib/supabase';
+import toast from 'react-hot-toast';
 
 interface DashboardHomeProps {
   isAdmin?: boolean;
 }
 
 const DashboardHome: React.FC<DashboardHomeProps> = ({ isAdmin = false }) => {
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
   const basePath = isAdmin ? '/fa-admin' : '/dashboard';
 
+  const [showNewsletter, setShowNewsletter] = useState(false);
+
+  useEffect(() => {
+    if (!isAdmin && user && profile && !profile.newsletter_subscribed) {
+      const alreadyPrompted = localStorage.getItem('fa_newsletter_prompted');
+      if (!alreadyPrompted) {
+        // Delay slightly for smooth UX
+        const timer = setTimeout(() => setShowNewsletter(true), 1500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isAdmin, user, profile]);
+
+  const handleNewsletterResponse = async (subscribe: boolean) => {
+    if (subscribe && user) {
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ newsletter_subscribed: true })
+          .eq('id', user.id);
+        if (error) throw error;
+        toast.success('Successfully subscribed to newsletter! 📧');
+      } catch (err) {
+        console.error('Newsletter error:', err);
+      }
+    }
+    localStorage.setItem('fa_newsletter_prompted', 'true');
+    setShowNewsletter(false);
+  };
+
   const { data: statsData, isLoading: statsLoading } = useQuery({
-    queryKey: ['dashboard-stats'],
-    queryFn: fetchDashboardStats
+    queryKey: ['dashboard-stats', isAdmin, user?.id],
+    queryFn: () => fetchDashboardStats(isAdmin ? undefined : user?.id)
   });
 
   const { data: activities, isLoading: activitiesLoading } = useQuery({
-    queryKey: ['dashboard-activity'],
-    queryFn: fetchRecentActivity
+    queryKey: ['dashboard-activity', isAdmin, user?.id],
+    queryFn: () => fetchRecentActivity(isAdmin ? undefined : user?.id)
   });
 
   const stats = [
@@ -45,7 +77,8 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ isAdmin = false }) => {
       icon: Users, 
       change: '+12%', 
       color: 'secondary',
-      link: `${basePath}/users`
+      link: `${basePath}/users`,
+      visible: isAdmin
     },
     { 
       name: 'Active Events', 
@@ -53,7 +86,8 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ isAdmin = false }) => {
       icon: Calendar, 
       change: '+23%', 
       color: 'primary',
-      link: `${basePath}/events`
+      link: `${basePath}/events`,
+      visible: true
     },
     { 
       name: 'Content Pieces', 
@@ -61,7 +95,8 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ isAdmin = false }) => {
       icon: FileText, 
       change: '+8%', 
       color: 'amber',
-      link: `${basePath}/content`
+      link: `${basePath}/content`,
+      visible: true
     },
     { 
       name: 'Services', 
@@ -69,9 +104,10 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ isAdmin = false }) => {
       icon: MessageSquare, 
       change: '+42%', 
       color: 'indigo',
-      link: `${basePath}/services`
+      link: `${basePath}/services`,
+      visible: true
     },
-  ];
+  ].filter(s => s.visible);
 
   const shortcuts = [
     { label: 'Moderate Content', icon: Shield, link: `${basePath}/content` },
@@ -82,13 +118,48 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ isAdmin = false }) => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Newsletter subscription prompt modal */}
+      {showNewsletter && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-8 relative animate-in zoom-in-95 duration-300 border border-gray-100 dark:border-gray-700">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            
+            <h3 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-2">
+              Stay Inspired!
+            </h3>
+            <p className="text-gray-650 dark:text-gray-350 text-center mb-8 leading-relaxed text-sm">
+              Would you like to receive our newsletter? Stay updated with the latest gospel news, upcoming events, and community stories. You can unsubscribe anytime.
+            </p>
+            
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => handleNewsletterResponse(true)}
+                className="w-full btn btn-primary py-3 text-base font-bold shadow-lg shadow-primary/20"
+              >
+                Yes, Subscribe Me
+              </button>
+              <button 
+                onClick={() => handleNewsletterResponse(false)}
+                className="w-full py-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-bold transition-colors text-sm"
+              >
+                No thanks, skip for now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 gap-6">
         <div>
           <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-2">
             Welcome back, {user?.user_metadata?.full_name || user?.email?.split('@')[0]}!
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 font-medium">
-            Your community platform is growing. Here's your summary for today.
+          <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">
+            {isAdmin ? "Your community platform is growing. Here's your summary for today." : "Amplify your faith. Check out your dashboard summary below."}
           </p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
@@ -103,7 +174,7 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ isAdmin = false }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className={`grid grid-cols-1 md:grid-cols-2 lg:${isAdmin ? 'grid-cols-4' : 'grid-cols-3'} gap-6`}>
         {stats.map((stat) => (
           <Link key={stat.name} to={stat.link}>
             <StatCard {...stat} isLoading={statsLoading} />

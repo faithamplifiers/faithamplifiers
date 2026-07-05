@@ -16,7 +16,8 @@ import {
   X,
   ChevronRight,
   ExternalLink,
-  Crown
+  Crown,
+  CreditCard
 } from 'lucide-react';
 import Logo from '../../components/ui/Logo';
 import ThemeToggle from '../../components/ui/ThemeToggle';
@@ -32,6 +33,7 @@ import Analytics from './Analytics';
 import Settings from './Settings';
 import Activities from './Activities';
 import UpgradePlan from './UpgradePlan';
+import PaymentsHistory from './PaymentsHistory';
 
 
 interface NavItem {
@@ -46,6 +48,7 @@ const navigation: NavItem[] = [
   { name: 'Events', icon: Calendar, href: '/dashboard/events' },
   { name: 'Services', icon: Briefcase, href: '/dashboard/services' },
   { name: 'Upgrade Plan', icon: Crown, href: '/dashboard/upgrade' },
+  { name: 'Billing & History', icon: CreditCard, href: '/dashboard/payments' },
   { name: 'Members', icon: Users, href: '/dashboard/users' },
   { name: 'Analytics', icon: BarChart2, href: '/dashboard/analytics' },
   { name: 'Activities', icon: Activity, href: '/dashboard/activities' },
@@ -218,6 +221,7 @@ const Dashboard: React.FC = () => {
             <Route path="/activities" element={<Activities />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/upgrade" element={<UpgradePlan />} />
+            <Route path="/payments" element={<PaymentsHistory />} />
           </Routes>
         </main>
       </div>

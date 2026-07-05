@@ -197,18 +197,29 @@ export async function fetchResources() {
   });
 }
 
-export async function fetchDashboardStats() {
+export async function fetchDashboardStats(userId?: string) {
   try {
+    let pQuery = supabase.from('profiles').select('*', { count: 'exact', head: true });
+    let eQuery = supabase.from('events').select('*', { count: 'exact', head: true });
+    let cQuery = supabase.from('content').select('*', { count: 'exact', head: true });
+    let sQuery = supabase.from('services').select('*', { count: 'exact', head: true });
+
+    if (userId) {
+      eQuery = eQuery.eq('organizer_id', userId);
+      cQuery = cQuery.eq('author_id', userId);
+      sQuery = sQuery.eq('provider_id', userId);
+    }
+
     const stats = await withTimeout(Promise.all([
-      supabase.from('profiles').select('*', { count: 'exact', head: true }),
-      supabase.from('events').select('*', { count: 'exact', head: true }),
-      supabase.from('content').select('*', { count: 'exact', head: true }),
-      supabase.from('services').select('*', { count: 'exact', head: true })
+      pQuery,
+      eQuery,
+      cQuery,
+      sQuery
     ]));
 
     const [u, e, c, s] = stats;
     return {
-      users: u.count || 0,
+      users: userId ? 0 : (u.count || 0),
       events: e.count || 0,
       content: c.count || 0,
       services: s.count || 0
@@ -219,11 +230,19 @@ export async function fetchDashboardStats() {
   }
 }
 
-export async function fetchRecentActivity() {
+export async function fetchRecentActivity(userId?: string) {
   try {
+    let cQuery = supabase.from('content').select('id, title, created_at, status').order('created_at', { ascending: false }).limit(3);
+    let eQuery = supabase.from('events').select('id, title, created_at, status:type').order('created_at', { ascending: false }).limit(3);
+
+    if (userId) {
+      cQuery = cQuery.eq('author_id', userId);
+      eQuery = eQuery.eq('organizer_id', userId);
+    }
+
     const [contentRes, eventsRes] = await withTimeout(Promise.all([
-      supabase.from('content').select('id, title, created_at, status').order('created_at', { ascending: false }).limit(3),
-      supabase.from('events').select('id, title, created_at, status:type').order('created_at', { ascending: false }).limit(3)
+      cQuery,
+      eQuery
     ]));
     const acts = [
       ...(contentRes.data || []).map(c => ({ id: `c-${c.id}`, type: 'content', title: c.title, time: c.created_at, status: 'Published' })),
