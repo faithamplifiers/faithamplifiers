@@ -101,7 +101,7 @@ const UpgradePlan: React.FC = () => {
     }
   };
 
-  const handleVerificationComplete = async (verificationData: VerificationData) => {
+  const handleVerificationComplete = (verificationData: VerificationData) => {
     if (!user) return;
 
     const paystackKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live_4799a5fb98fbb27e8fc6ac9fad9374327466d28e';
@@ -111,28 +111,31 @@ const UpgradePlan: React.FC = () => {
       return;
     }
 
-    // Use modern PaystackPop API (supports all function types incl. async)
-    const paystack = new window.PaystackPop();
-    paystack.newTransaction({
+    // PaystackPop.setup() requires plain function() — not async arrows
+    const handler = window.PaystackPop.setup({
       key: paystackKey,
       email: user.email || '',
       amount: 500000, // ₦5,000 in kobo
       currency: 'NGN',
-      ref: `fa_upgrade_${user.id}_${Date.now()}`,
+      ref: 'fa_upgrade_' + user.id + '_' + Date.now(),
       metadata: {
-        user_id: user.id,
-        plan: 'event_services',
+        custom_fields: [
+          { display_name: 'User ID', variable_name: 'user_id', value: user.id },
+          { display_name: 'Plan', variable_name: 'plan', value: 'event_services' },
+        ],
       },
-      onSuccess: (transaction: any) => {
-        saveVerificationAndUpgrade(verificationData, transaction.reference);
+      callback: function(response: any) {
+        saveVerificationAndUpgrade(verificationData, response.reference);
       },
-      onCancel: () => {
+      onClose: function() {
         toast('Payment window closed. You can try again anytime.');
       },
     });
+
+    handler.openIframe();
   };
 
-  const handleCompletePaymentOnly = async () => {
+  const handleCompletePaymentOnly = () => {
     if (!user || !memberPlan) return;
 
     const paystackKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live_4799a5fb98fbb27e8fc6ac9fad9374327466d28e';
@@ -152,25 +155,28 @@ const UpgradePlan: React.FC = () => {
       govIdUrl: memberPlan.gov_id_url || '',
     };
 
-    // Use modern PaystackPop API (supports all function types incl. async)
-    const paystack = new window.PaystackPop();
-    paystack.newTransaction({
+    // PaystackPop.setup() requires plain function() — not async arrows
+    const handler = window.PaystackPop.setup({
       key: paystackKey,
       email: user.email || '',
       amount: 500000, // ₦5,000 in kobo
       currency: 'NGN',
-      ref: `fa_upgrade_${user.id}_${Date.now()}`,
+      ref: 'fa_upgrade_' + user.id + '_' + Date.now(),
       metadata: {
-        user_id: user.id,
-        plan: 'event_services',
+        custom_fields: [
+          { display_name: 'User ID', variable_name: 'user_id', value: user.id },
+          { display_name: 'Plan', variable_name: 'plan', value: 'event_services' },
+        ],
       },
-      onSuccess: (transaction: any) => {
-        saveVerificationAndUpgrade(verificationData, transaction.reference);
+      callback: function(response: any) {
+        saveVerificationAndUpgrade(verificationData, response.reference);
       },
-      onCancel: () => {
+      onClose: function() {
         toast('Payment window closed. You can try again anytime.');
       },
     });
+
+    handler.openIframe();
   };
 
   const saveVerificationAndUpgrade = async (verificationData: VerificationData, paystackRef: string | null) => {
