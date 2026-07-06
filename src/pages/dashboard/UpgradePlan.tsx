@@ -64,10 +64,14 @@ const UpgradePlan: React.FC = () => {
   const { user, profile } = useAuthStore();
   const queryClient = useQueryClient();
   const [showVerification, setShowVerification] = useState(false);
-  const [paystackLoaded, setPaystackLoaded] = useState(false);
+  const [paystackLoaded, setPaystackLoaded] = useState(!!window.PaystackPop);
 
-  // Load Paystack script dynamically
+  // Load Paystack script dynamically if not already loaded
   useEffect(() => {
+    if (window.PaystackPop) {
+      setPaystackLoaded(true);
+      return;
+    }
     if (document.getElementById('paystack-script')) {
       setPaystackLoaded(true);
       return;
@@ -118,12 +122,10 @@ const UpgradePlan: React.FC = () => {
   const handleVerificationComplete = async (verificationData: VerificationData) => {
     if (!user) return;
 
-    const paystackKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+    const paystackKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live_4799a5fb98fbb27e8fc6ac9fad9374327466d28e';
 
     if (!paystackKey || !paystackLoaded || !window.PaystackPop) {
-      // If Paystack isn't configured, save verification data and mark as pending
-      toast('Paystack not configured. Saving verification data...');
-      await saveVerificationAndUpgrade(verificationData, null);
+      toast.error('Payment SDK is not loaded. Please restart your dev server (npm run dev) to load environment variables, or refresh the page.');
       return;
     }
 
@@ -152,7 +154,7 @@ const UpgradePlan: React.FC = () => {
   const handleCompletePaymentOnly = async () => {
     if (!user || !memberPlan) return;
 
-    const paystackKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+    const paystackKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live_4799a5fb98fbb27e8fc6ac9fad9374327466d28e';
 
     if (!paystackKey || !paystackLoaded || !window.PaystackPop) {
       toast.error('Paystack SDK is not loaded. Please try again.');
