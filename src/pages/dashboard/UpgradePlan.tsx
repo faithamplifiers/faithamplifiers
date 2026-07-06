@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import { supabase } from '../../lib/supabase';
 import PlanCard from '../../components/upgrade/PlanCard';
@@ -64,25 +64,7 @@ const UpgradePlan: React.FC = () => {
   const { user, profile } = useAuthStore();
   const queryClient = useQueryClient();
   const [showVerification, setShowVerification] = useState(false);
-  const [paystackLoaded, setPaystackLoaded] = useState(!!window.PaystackPop);
-
-  // Load Paystack script dynamically if not already loaded
-  useEffect(() => {
-    if (window.PaystackPop) {
-      setPaystackLoaded(true);
-      return;
-    }
-    if (document.getElementById('paystack-script')) {
-      setPaystackLoaded(true);
-      return;
-    }
-    const script = document.createElement('script');
-    script.id = 'paystack-script';
-    script.src = 'https://js.paystack.co/v1/inline.js';
-    script.async = true;
-    script.onload = () => setPaystackLoaded(true);
-    document.body.appendChild(script);
-  }, []);
+  // PaystackPop is loaded globally via index.html — no dynamic loading needed
 
   // Fetch existing member plan
   const { data: memberPlan, isLoading } = useQuery({
@@ -124,15 +106,16 @@ const UpgradePlan: React.FC = () => {
 
     const paystackKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live_4799a5fb98fbb27e8fc6ac9fad9374327466d28e';
 
-    if (!paystackKey || !paystackLoaded || !window.PaystackPop) {
-      toast.error('Payment SDK is not loaded. Please restart your dev server (npm run dev) to load environment variables, or refresh the page.');
+    if (!paystackKey || !window.PaystackPop) {
+      toast.error('Payment SDK is not loaded. Please refresh the page and try again.');
       return;
     }
 
-    // Initiate Paystack checkout
-    const handler = window.PaystackPop.setup({
+    // Use modern PaystackPop API (supports all function types incl. async)
+    const paystack = new window.PaystackPop();
+    paystack.newTransaction({
       key: paystackKey,
-      email: user.email,
+      email: user.email || '',
       amount: 500000, // ₦5,000 in kobo
       currency: 'NGN',
       ref: `fa_upgrade_${user.id}_${Date.now()}`,
@@ -140,15 +123,13 @@ const UpgradePlan: React.FC = () => {
         user_id: user.id,
         plan: 'event_services',
       },
-      callback: async (response: any) => {
-        await saveVerificationAndUpgrade(verificationData, response.reference);
+      onSuccess: (transaction: any) => {
+        saveVerificationAndUpgrade(verificationData, transaction.reference);
       },
-      onClose: () => {
+      onCancel: () => {
         toast('Payment window closed. You can try again anytime.');
       },
     });
-
-    handler.openIframe();
   };
 
   const handleCompletePaymentOnly = async () => {
@@ -156,14 +137,26 @@ const UpgradePlan: React.FC = () => {
 
     const paystackKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live_4799a5fb98fbb27e8fc6ac9fad9374327466d28e';
 
-    if (!paystackKey || !paystackLoaded || !window.PaystackPop) {
-      toast.error('Paystack SDK is not loaded. Please try again.');
+    if (!paystackKey || !window.PaystackPop) {
+      toast.error('Paystack SDK is not loaded. Please refresh the page and try again.');
       return;
     }
 
-    const handler = window.PaystackPop.setup({
+    const verificationData: VerificationData = {
+      legalName: memberPlan.legal_name || '',
+      phone: memberPlan.phone || '',
+      address: memberPlan.address || '',
+      country: memberPlan.country || '',
+      state: memberPlan.state || '',
+      dateOfBirth: memberPlan.date_of_birth || '',
+      govIdUrl: memberPlan.gov_id_url || '',
+    };
+
+    // Use modern PaystackPop API (supports all function types incl. async)
+    const paystack = new window.PaystackPop();
+    paystack.newTransaction({
       key: paystackKey,
-      email: user.email,
+      email: user.email || '',
       amount: 500000, // ₦5,000 in kobo
       currency: 'NGN',
       ref: `fa_upgrade_${user.id}_${Date.now()}`,
@@ -171,24 +164,13 @@ const UpgradePlan: React.FC = () => {
         user_id: user.id,
         plan: 'event_services',
       },
-      callback: async (response: any) => {
-        const verificationData = {
-          legalName: memberPlan.legal_name || '',
-          phone: memberPlan.phone || '',
-          address: memberPlan.address || '',
-          country: memberPlan.country || '',
-          state: memberPlan.state || '',
-          dateOfBirth: memberPlan.date_of_birth || '',
-          govIdUrl: memberPlan.gov_id_url || '',
-        };
-        await saveVerificationAndUpgrade(verificationData, response.reference);
+      onSuccess: (transaction: any) => {
+        saveVerificationAndUpgrade(verificationData, transaction.reference);
       },
-      onClose: () => {
+      onCancel: () => {
         toast('Payment window closed. You can try again anytime.');
       },
     });
-
-    handler.openIframe();
   };
 
   const saveVerificationAndUpgrade = async (verificationData: VerificationData, paystackRef: string | null) => {
