@@ -80,6 +80,20 @@ const EventManager = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
+  const { data: memberPlan } = useQuery({
+    queryKey: ['member_plan', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from('member_plans')
+        .select('plan, payment_status, verification_status')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user,
+  });
+
   const { data: events = [], isLoading: loading } = useQuery({
     queryKey: ['author_events', user?.id],
     queryFn: async () => {
@@ -353,9 +367,63 @@ const EventManager = () => {
     setEditCategoryData(null);
   };
 
+
   const inputClasses = "w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:ring-2 focus:ring-secondary focus:border-transparent transition-all";
 
+
   const isPrivileged = profile?.role === 'event_organizer' || profile?.role === 'admin' || profile?.role === 'super_admin';
+  const isPendingVerification =
+    memberPlan?.plan === 'event_services' &&
+    memberPlan?.payment_status === 'paid' &&
+    memberPlan?.verification_status === 'pending';
+
+  if (!isPrivileged && isPendingVerification) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl border border-amber-200 dark:border-amber-800/40 p-10 text-center space-y-6 shadow-lg">
+          <div className="relative inline-flex">
+            <div className="w-20 h-20 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+              <Crown className="w-10 h-10 text-amber-500" />
+            </div>
+            <span className="absolute -top-1 -right-1 w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center animate-pulse">
+              <span className="w-3 h-3 bg-white rounded-full" />
+            </span>
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black text-gray-900 dark:text-white">Verification Under Review</h2>
+            <p className="text-amber-700 dark:text-amber-400 font-semibold text-sm uppercase tracking-wider">Payment Received · Awaiting Admin Approval</p>
+          </div>
+          <p className="text-gray-600 dark:text-gray-300 max-w-md mx-auto text-sm leading-relaxed">
+            Thank you for completing your upgrade payment and submitting your identity verification. Our team is carefully reviewing your information to ensure the integrity and security of our community.
+          </p>
+          <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto">
+            {[['Minutes', 'Quick reviews'], ['Hours', 'Standard reviews'], ['Days', 'Complex reviews']].map(([time, label]) => (
+              <div key={time} className="bg-white/70 dark:bg-gray-700/50 rounded-xl p-3 border border-amber-100 dark:border-amber-800/30">
+                <p className="text-amber-600 dark:text-amber-400 font-bold text-sm">{time}</p>
+                <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">{label}</p>
+              </div>
+            ))}
+          </div>
+          <div className="bg-white/60 dark:bg-gray-700/40 rounded-xl p-4 text-left space-y-2 max-w-sm mx-auto border border-amber-100 dark:border-amber-800/30">
+            <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-3">What happens next?</p>
+            {[
+              'Admin reviews your submitted identity documents',
+              'You receive an email notification once approved',
+              'Full access to Events & Services features is unlocked',
+            ].map((step, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="mt-0.5 w-4 h-4 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 flex-shrink-0 flex items-center justify-center text-xs font-bold">{i + 1}</span>
+                <p className="text-gray-600 dark:text-gray-400 text-xs leading-relaxed">{step}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 dark:text-gray-500">
+            Have questions? <a href="/contact" className="text-secondary hover:underline font-medium">Contact our support team</a>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isPrivileged) {
     return (
