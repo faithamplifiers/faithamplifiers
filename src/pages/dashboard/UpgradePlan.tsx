@@ -11,6 +11,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 declare global {
   interface Window {
     PaystackPop: any;
+    '
   }
 }
 
@@ -22,7 +23,7 @@ const PLANS = {
     features: [
       'Create and publish articles',
       'Custom username & avatar',
-      'Social media links on profile',
+      'Social media links on profile', 8o = ['l']
       'Community engagement',
       'Basic analytics dashboard',
     ],
@@ -124,10 +125,10 @@ const UpgradePlan: React.FC = () => {
           { display_name: 'Plan', variable_name: 'plan', value: 'event_services' },
         ],
       },
-      callback: function(response: any) {
+      callback: function (response: any) {
         saveVerificationAndUpgrade(verificationData, response.reference);
       },
-      onClose: function() {
+      onClose: function () {
         toast('Payment window closed. You can try again anytime.');
       },
     });
@@ -168,10 +169,10 @@ const UpgradePlan: React.FC = () => {
           { display_name: 'Plan', variable_name: 'plan', value: 'event_services' },
         ],
       },
-      callback: function(response: any) {
+      callback: function (response: any) {
         saveVerificationAndUpgrade(verificationData, response.reference);
       },
-      onClose: function() {
+      onClose: function () {
         toast('Payment window closed. You can try again anytime.');
       },
     });
