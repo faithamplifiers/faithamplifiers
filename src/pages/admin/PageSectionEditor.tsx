@@ -15,7 +15,7 @@ import toast from 'react-hot-toast';
 interface SectionField {
   key: string;
   label: string;
-  type: 'text' | 'textarea' | 'url' | 'number';
+  type: 'text' | 'textarea' | 'url' | 'number' | 'select-article' | 'select-event' | 'select-service';
   placeholder?: string;
   rows?: number;
 }
@@ -156,6 +156,51 @@ export const HOME_PAGE_CONFIG: PageEditorConfig = {
         image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=1170&q=80',
         link: '/events',
         buttonText: 'Discover Events',
+      },
+    },
+    {
+      key: 'featured_news',
+      label: 'Featured News Section',
+      icon: <FileText className="w-5 h-5" />,
+      fields: [
+        { key: 'title', label: 'Section Title', type: 'text', placeholder: 'Latest Gospel News' },
+        { key: 'subtitle', label: 'Section Subtitle', type: 'textarea', placeholder: 'Stay informed with the latest happenings...', rows: 3 },
+        { key: 'pinned_article_id', label: 'Pinned News Article (Left Big Card)', type: 'select-article' },
+      ],
+      defaultData: {
+        title: 'Latest Gospel News',
+        subtitle: 'Stay informed with the latest happenings in the gospel community.',
+        pinned_article_id: '',
+      },
+    },
+    {
+      key: 'featured_events',
+      label: 'Featured Events Section',
+      icon: <Calendar className="w-5 h-5" />,
+      fields: [
+        { key: 'title', label: 'Section Title', type: 'text', placeholder: 'Upcoming Events' },
+        { key: 'subtitle', label: 'Section Subtitle', type: 'textarea', placeholder: 'Discover and connect with faith-based events...', rows: 3 },
+        { key: 'pinned_event_id', label: 'Pinned Event (Left Big Card)', type: 'select-event' },
+      ],
+      defaultData: {
+        title: 'Upcoming Events',
+        subtitle: 'Discover and connect with faith-based events happening in your community and beyond.',
+        pinned_event_id: '',
+      },
+    },
+    {
+      key: 'featured_services',
+      label: 'Featured Services Section',
+      icon: <Grid className="w-5 h-5" />,
+      fields: [
+        { key: 'title', label: 'Section Title', type: 'text', placeholder: 'Our Professional Services' },
+        { key: 'subtitle', label: 'Section Subtitle', type: 'textarea', placeholder: 'Elevate your ministry with production and creative services...', rows: 3 },
+        { key: 'pinned_service_id', label: 'Pinned Service (First Grid Card)', type: 'select-service' },
+      ],
+      defaultData: {
+        title: 'Our Professional Services',
+        subtitle: 'Elevate your ministry with production and creative services designed to amplify your global impact.',
+        pinned_service_id: '',
       },
     },
     {
@@ -317,6 +362,45 @@ const PageSectionEditor: React.FC<PageSectionEditorProps> = ({ config }) => {
   const [sectionData, setSectionData] = useState<Record<string, Record<string, any>>>({});
   const [saving, setSaving] = useState<string | null>(null);
 
+  // Load options for custom pinning selects
+  const { data: selectArticles } = useQuery({
+    queryKey: ['admin-pinning-articles'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('content')
+        .select('id, title')
+        .eq('status', 'published')
+        .order('title');
+      return data || [];
+    },
+    enabled: config.pageSlug === 'home'
+  });
+
+  const { data: selectEvents } = useQuery({
+    queryKey: ['admin-pinning-events'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('events')
+        .select('id, title')
+        .order('title');
+      return data || [];
+    },
+    enabled: config.pageSlug === 'home'
+  });
+
+  const { data: selectServices } = useQuery({
+    queryKey: ['admin-pinning-services'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('services')
+        .select('id, title')
+        .eq('status', 'active')
+        .order('title');
+      return data || [];
+    },
+    enabled: config.pageSlug === 'home'
+  });
+
   // Initialize defaults
   useEffect(() => {
     const defaults: Record<string, Record<string, any>> = {};
@@ -460,6 +544,39 @@ const PageSectionEditor: React.FC<PageSectionEditorProps> = ({ config }) => {
                   placeholder={field.placeholder}
                   onChange={e => updateField(section.key, field.key, e.target.value)}
                 />
+              ) : field.type === 'select-article' ? (
+                <select
+                  className={inputCls}
+                  value={sectionData[section.key]?.[field.key] || ''}
+                  onChange={e => updateField(section.key, field.key, e.target.value)}
+                >
+                  <option value="">-- Default / Auto-featured --</option>
+                  {selectArticles?.map((art: any) => (
+                    <option key={art.id} value={art.id}>{art.title}</option>
+                  ))}
+                </select>
+              ) : field.type === 'select-event' ? (
+                <select
+                  className={inputCls}
+                  value={sectionData[section.key]?.[field.key] || ''}
+                  onChange={e => updateField(section.key, field.key, e.target.value)}
+                >
+                  <option value="">-- Default / Auto-featured --</option>
+                  {selectEvents?.map((ev: any) => (
+                    <option key={ev.id} value={ev.id}>{ev.title}</option>
+                  ))}
+                </select>
+              ) : field.type === 'select-service' ? (
+                <select
+                  className={inputCls}
+                  value={sectionData[section.key]?.[field.key] || ''}
+                  onChange={e => updateField(section.key, field.key, e.target.value)}
+                >
+                  <option value="">-- Default / Auto-featured --</option>
+                  {selectServices?.map((sv: any) => (
+                    <option key={sv.id} value={sv.id}>{sv.title}</option>
+                  ))}
+                </select>
               ) : (
                 <input
                   type={field.type}

@@ -13,7 +13,8 @@ import {
   BookOpen,
   Calendar,
   ShieldCheck,
-  User
+  User,
+  X
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
@@ -41,6 +42,7 @@ const Directory: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState<'all' | 'person' | 'service' | 'event' | 'article' | 'business'>('all');
   const [selectedListing, setSelectedListing] = useState<UnifiedDirectoryEntry | null>(null);
+  const [showCollab, setShowCollab] = useState(false);
 
   // 1. Fetch Page Sections Header
   const { data: dbHeader } = useQuery({
@@ -75,9 +77,9 @@ const Directory: React.FC = () => {
       ] = await Promise.all([
         supabase.from('directory_listings').select('*'),
         supabase.from('profiles').select('*, member_plans(*)').in('role', ['content_creator', 'event_organizer', 'admin']),
-        supabase.from('services').select('*, provider:profiles(*)').eq('status', 'active'),
-        supabase.from('events').select('*, organizer:profiles(*)'),
-        supabase.from('content').select('*, author:profiles(*)').eq('status', 'published')
+        supabase.from('services').select('*, provider:profiles(*, member_plans(*))').eq('status', 'active'),
+        supabase.from('events').select('*, organizer:profiles(*, member_plans(*))'),
+        supabase.from('content').select('*, author:profiles(*, member_plans(*))').eq('status', 'published')
       ]);
 
       const entries: UnifiedDirectoryEntry[] = [];
@@ -378,12 +380,12 @@ const Directory: React.FC = () => {
 
                   {/* Actions */}
                   <div className="flex gap-3 pt-2 border-t border-gray-100 dark:border-gray-800">
-                    <a
-                      href={selectedListing.email ? `mailto:${selectedListing.email}` : `/contact`}
+                    <button
+                      onClick={() => setShowCollab(true)}
                       className="flex-1 btn btn-secondary flex items-center justify-center gap-2 font-bold py-2.5 rounded-xl shadow-lg shadow-secondary/20"
                     >
                       <Mail className="w-4 h-4" /> Collaborate
-                    </a>
+                    </button>
                     <button
                       onClick={() => handleShare(selectedListing)}
                       className="p-3 rounded-xl border border-gray-250 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
@@ -658,6 +660,212 @@ const Directory: React.FC = () => {
           </div>
         )}
       </div>
+      
+      {/* Collaborate Modal Popup */}
+      {showCollab && selectedListing && (() => {
+        // Helper to resolve contact information dynamically for different types
+        let email = '';
+        let phone = '';
+        let socialLinks: any = {};
+
+        if (selectedListing.type === 'business') {
+          email = selectedListing.email || '';
+          phone = selectedListing.phone || '';
+          socialLinks = { website: selectedListing.website || '' };
+        } else if (selectedListing.type === 'person') {
+          const plan = selectedListing.rawRecord.plan;
+          email = selectedListing.rawRecord.email || '';
+          phone = plan?.phone || selectedListing.phone || '';
+          socialLinks = plan?.social_links || {};
+        } else if (selectedListing.type === 'service') {
+          const provider = selectedListing.rawRecord.provider;
+          const plan = provider?.member_plans?.[0] || provider?.member_plans;
+          email = provider?.email || '';
+          phone = plan?.phone || '';
+          socialLinks = plan?.social_links || {};
+        } else if (selectedListing.type === 'event') {
+          const organizer = selectedListing.rawRecord.organizer;
+          const plan = organizer?.member_plans?.[0] || organizer?.member_plans;
+          email = organizer?.email || '';
+          phone = plan?.phone || '';
+          socialLinks = plan?.social_links || {};
+        } else if (selectedListing.type === 'article') {
+          const author = selectedListing.rawRecord.author;
+          const plan = author?.member_plans?.[0] || author?.member_plans;
+          email = author?.email || '';
+          phone = plan?.phone || '';
+          socialLinks = plan?.social_links || {};
+        }
+
+        const cleanPhone = (socialLinks.whatsapp || phone || '').replace(/[^0-9+]/g, '');
+        const hasSocials = cleanPhone || email || Object.values(socialLinks).some(v => !!v);
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+            <div className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-3xl border border-gray-150 dark:border-gray-800 shadow-2xl p-6 space-y-6">
+              <button
+                onClick={() => setShowCollab(false)}
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 bg-secondary/10 dark:bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto text-secondary dark:text-yellow-500">
+                  <Mail className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-black text-gray-900 dark:text-white">Collaborate with {selectedListing.name}</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Choose a method to connect and start collaborating.</p>
+              </div>
+
+              <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                {(socialLinks.whatsapp || phone) ? (
+                  <a
+                    href={`https://wa.me/${cleanPhone.replace('+', '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-4 px-4 py-3 rounded-2xl bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366] hover:text-white font-bold text-sm transition-all border border-[#25D366]/20"
+                  >
+                    <span className="p-2 rounded-xl bg-white/20">
+                      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.09-3.931l.34.203c1.727 1.026 3.754 1.567 5.82 1.568 5.761 0 10.448-4.686 10.45-10.45.002-2.793-1.085-5.418-3.064-7.398-1.98-1.98-4.606-3.066-7.399-3.067-5.765 0-10.452 4.686-10.454 10.452-.001 2.133.559 4.218 1.621 6.012l.224.379-.997 3.64 3.722-.976zm11.239-6.02c-.328-.163-1.94-.957-2.24-1.066-.3-.11-.518-.163-.738.163-.22.327-.847 1.066-1.038 1.284-.19.217-.38.244-.708.081-1.123-.563-1.978-1.037-2.754-2.364-.206-.353-.206-.575-.028-.802.161-.203.328-.38.492-.573.164-.19.219-.327.328-.545.11-.217.055-.407-.028-.57-.082-.163-.738-1.777-1.01-2.434-.265-.636-.53-.55-.738-.56-.19-.01-.409-.012-.627-.012-.218 0-.573.082-.873.409-.3.327-1.145 1.116-1.145 2.723s1.173 3.158 1.336 3.376c.164.218 2.308 3.525 5.59 4.95.78.338 1.39.54 1.868.692.784.249 1.497.214 2.061.129.629-.094 1.94-.793 2.213-1.558.272-.764.272-1.417.19-1.557-.083-.14-.308-.222-.636-.385z" />
+                      </svg>
+                    </span>
+                    <div className="text-left">
+                      <p className="font-bold">WhatsApp</p>
+                      <p className="text-xs opacity-80">{socialLinks.whatsapp || phone}</p>
+                    </div>
+                  </a>
+                ) : null}
+
+                {email ? (
+                  <a
+                    href={`mailto:${email}`}
+                    className="flex items-center gap-4 px-4 py-3 rounded-2xl bg-secondary/10 text-secondary hover:bg-secondary hover:text-white font-bold text-sm transition-all border border-secondary/20"
+                  >
+                    <span className="p-2 rounded-xl bg-white/20">
+                      <Mail className="w-5 h-5" />
+                    </span>
+                    <div className="text-left">
+                      <p className="font-bold">Email Address</p>
+                      <p className="text-xs opacity-80">{email}</p>
+                    </div>
+                  </a>
+                ) : null}
+
+                {socialLinks.facebook ? (
+                  <a
+                    href={socialLinks.facebook}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-4 px-4 py-3 rounded-2xl bg-[#1877F2]/10 text-[#1877F2] hover:bg-[#1877F2] hover:text-white font-bold text-sm transition-all border border-[#1877F2]/20"
+                  >
+                    <span className="p-2 rounded-xl bg-white/20">
+                      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                      </svg>
+                    </span>
+                    <div className="text-left">
+                      <p className="font-bold">Facebook</p>
+                      <p className="text-xs truncate max-w-[240px] opacity-80">{socialLinks.facebook}</p>
+                    </div>
+                  </a>
+                ) : null}
+
+                {socialLinks.instagram ? (
+                  <a
+                    href={socialLinks.instagram.startsWith('http') ? socialLinks.instagram : `https://instagram.com/${socialLinks.instagram.replace('@', '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-4 px-4 py-3 rounded-2xl bg-[#E1306C]/10 text-[#E1306C] hover:bg-[#E1306C] hover:text-white font-bold text-sm transition-all border border-[#E1306C]/20"
+                  >
+                    <span className="p-2 rounded-xl bg-white/20">
+                      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.051.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+                      </svg>
+                    </span>
+                    <div className="text-left">
+                      <p className="font-bold">Instagram</p>
+                      <p className="text-xs truncate max-w-[240px] opacity-80">{socialLinks.instagram}</p>
+                    </div>
+                  </a>
+                ) : null}
+
+                {socialLinks.twitter ? (
+                  <a
+                    href={socialLinks.twitter.startsWith('http') ? socialLinks.twitter : `https://x.com/${socialLinks.twitter.replace('@', '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-4 px-4 py-3 rounded-2xl bg-gray-500/10 text-gray-900 dark:text-white hover:bg-gray-900 hover:text-white dark:hover:bg-white dark:hover:text-black font-bold text-sm transition-all border border-gray-250 dark:border-gray-800"
+                  >
+                    <span className="p-2 rounded-xl bg-white/20 text-black dark:text-white">
+                      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                      </svg>
+                    </span>
+                    <div className="text-left">
+                      <p className="font-bold">Twitter / X</p>
+                      <p className="text-xs truncate max-w-[240px] opacity-80">{socialLinks.twitter}</p>
+                    </div>
+                  </a>
+                ) : null}
+
+                {socialLinks.youtube ? (
+                  <a
+                    href={socialLinks.youtube}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-4 px-4 py-3 rounded-2xl bg-[#FF0000]/10 text-[#FF0000] hover:bg-[#FF0000] hover:text-white font-bold text-sm transition-all border border-[#FF0000]/20"
+                  >
+                    <span className="p-2 rounded-xl bg-white/20">
+                      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                        <path d="M23.498 6.163a3.003 3.003 0 00-2.11-2.11C19.518 3.5 12 3.5 12 3.5s-7.518 0-9.388.553a3.003 3.003 0 00-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 002.11 2.11c1.87.553 9.388.553 9.388.553s7.518 0 9.388-.553a3.003 3.003 0 002.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                      </svg>
+                    </span>
+                    <div className="text-left">
+                      <p className="font-bold">YouTube</p>
+                      <p className="text-xs truncate max-w-[240px] opacity-80">{socialLinks.youtube}</p>
+                    </div>
+                  </a>
+                ) : null}
+
+                {socialLinks.website ? (
+                  <a
+                    href={socialLinks.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-4 px-4 py-3 rounded-2xl bg-blue-500/10 text-blue-600 hover:bg-blue-500 hover:text-white font-bold text-sm transition-all border border-blue-500/20"
+                  >
+                    <span className="p-2 rounded-xl bg-white/20">
+                      <Globe className="w-5 h-5" />
+                    </span>
+                    <div className="text-left">
+                      <p className="font-bold">Visit Website</p>
+                      <p className="text-xs truncate max-w-[240px] opacity-80">{socialLinks.website}</p>
+                    </div>
+                  </a>
+                ) : null}
+
+                {!hasSocials ? (
+                  <Link
+                    to="/contact"
+                    onClick={() => setShowCollab(false)}
+                    className="flex items-center gap-4 px-4 py-3 rounded-2xl bg-gray-500/10 text-gray-700 dark:text-gray-300 hover:bg-gray-500 hover:text-white font-bold text-sm transition-all border border-gray-500/20"
+                  >
+                    <span className="p-2 rounded-xl bg-white/20">
+                      <Globe className="w-5 h-5" />
+                    </span>
+                    <div className="text-left">
+                      <p className="font-bold">General Contact Page</p>
+                      <p className="text-xs opacity-80">Send general feedback / inquiry</p>
+                    </div>
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

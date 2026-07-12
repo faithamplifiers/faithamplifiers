@@ -17,6 +17,12 @@ export interface VerificationData {
   state: string;
   dateOfBirth: string;
   govIdUrl: string;
+  whatsapp?: string;
+  facebook?: string;
+  instagram?: string;
+  twitter?: string;
+  youtube?: string;
+  website?: string;
 }
 
 const VerificationForm: React.FC<VerificationFormProps> = ({ onComplete, onCancel }) => {
@@ -30,7 +36,13 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onComplete, onCance
     country: '',
     state: '',
     dateOfBirth: '',
-    govIdUrl: ''
+    govIdUrl: '',
+    whatsapp: '',
+    facebook: '',
+    instagram: '',
+    twitter: '',
+    youtube: '',
+    website: ''
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -164,6 +176,36 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onComplete, onCance
                   State / Province
                 </label>
                 <input type="text" name="state" value={formData.state} onChange={handleChange} placeholder="e.g. Lagos" className={inputClasses} />
+              </div>
+            </div>
+
+            <div className="border-t border-gray-100 dark:border-gray-700/50 my-4 pt-4">
+              <h5 className="text-xs font-black text-secondary dark:text-yellow-500 uppercase tracking-widest mb-3">Social & Contact Links (Optional)</h5>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-650 dark:text-gray-400 uppercase tracking-widest mb-1">WhatsApp Number</label>
+                  <input type="text" name="whatsapp" value={formData.whatsapp || ''} onChange={handleChange} placeholder="e.g. +234801234567" className={inputClasses} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-650 dark:text-gray-400 uppercase tracking-widest mb-1">Facebook Link</label>
+                  <input type="url" name="facebook" value={formData.facebook || ''} onChange={handleChange} placeholder="https://facebook.com/username" className={inputClasses} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-650 dark:text-gray-400 uppercase tracking-widest mb-1">Instagram Link</label>
+                  <input type="text" name="instagram" value={formData.instagram || ''} onChange={handleChange} placeholder="https://instagram.com/username" className={inputClasses} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-650 dark:text-gray-400 uppercase tracking-widest mb-1">Twitter/X Link</label>
+                  <input type="text" name="twitter" value={formData.twitter || ''} onChange={handleChange} placeholder="https://x.com/username" className={inputClasses} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-650 dark:text-gray-400 uppercase tracking-widest mb-1">YouTube Link</label>
+                  <input type="url" name="youtube" value={formData.youtube || ''} onChange={handleChange} placeholder="https://youtube.com/@channel" className={inputClasses} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-650 dark:text-gray-400 uppercase tracking-widest mb-1">Website Link</label>
+                  <input type="url" name="website" value={formData.website || ''} onChange={handleChange} placeholder="https://yourwebsite.com" className={inputClasses} />
+                </div>
               </div>
             </div>
 

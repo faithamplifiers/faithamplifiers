@@ -1,157 +1,167 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Video, Image, Music, Calendar } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchServices } from '../../lib/api';
+import { supabase } from '../../lib/supabase';
 
 const FeaturedServices: React.FC = () => {
+  // 1. Fetch services
   const { data: services } = useQuery({ queryKey: ['services'], queryFn: fetchServices });
-  // Filter featured services
-  const featuredServices = services?.filter(service => service.featured) || [];
+
+  // 2. Fetch page section info for services section
+  const { data: servicesSection } = useQuery({
+    queryKey: ['home-services-section'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('page_sections')
+        .select('*')
+        .eq('page_slug', 'home')
+        .eq('section', 'featured_services')
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const sectionConfig = servicesSection?.content as any || {};
+  const sectionTitle = sectionConfig.title || 'Our Professional Services';
+  const sectionSubtitle = sectionConfig.subtitle || 'Elevate your ministry with production and creative services designed to amplify your global impact.';
+  const pinnedServiceId = sectionConfig.pinned_service_id;
+
+  // 3. Fetch pinned service specifically if configured
+  const { data: pinnedService } = useQuery({
+    queryKey: ['pinned-service', pinnedServiceId],
+    queryFn: async () => {
+      if (!pinnedServiceId) return null;
+      const { data, error } = await supabase
+        .from('services')
+        .select('*, provider:profiles(*)')
+        .eq('id', pinnedServiceId)
+        .eq('status', 'active')
+        .maybeSingle();
+      
+      if (error) throw error;
+      if (!data) return null;
+
+      return {
+        id: data.id,
+        title: data.title || 'Untitled Service',
+        slug: data.slug || data.id,
+        description: data.description || '',
+        category: data.category || 'other',
+        price: data.price,
+        coverImage: data.cover_url || data.cover_image || (data.portfolio_images && data.portfolio_images[0]) || 'https://images.unsplash.com/photo-1542744094-24638eff58bb?auto=format&fit=crop&q=80',
+        rating: 5.0,
+        ratingCount: 0
+      };
+    },
+    enabled: !!pinnedServiceId
+  });
+
+  // Resolve featured services grid (up to 4 items)
+  const defaultFeatured = services?.filter(s => s.featured) || [];
+  let gridServices = [...defaultFeatured];
+
+  if (pinnedService) {
+    gridServices = [pinnedService, ...gridServices.filter(s => s.id !== pinnedService.id)];
+  }
+
+  // Fallback to active services if featured list is empty
+  if (gridServices.length === 0 && services && services.length > 0) {
+    gridServices = services.slice(0, 4);
+  } else {
+    gridServices = gridServices.slice(0, 4);
+  }
 
   return (
-    <section className="section bg-light-gray dark:bg-gray-800">
-      <div className="container-custom">
-        <div className="text-center mb-12">
-          <h2 className="section-title">Our Professional Services</h2>
-          <p className="section-subtitle mx-auto">
-            Elevate your ministry with our comprehensive range of professional services designed to amplify your message and reach.
+    <section className="py-24 bg-[#111111] text-white border-b border-gray-900">
+      <div className="container-custom px-6 text-center space-y-16">
+        
+        {/* Centered Header */}
+        <div className="space-y-4 max-w-2xl mx-auto">
+          <span className="text-xs font-black uppercase tracking-widest text-secondary">
+            WHAT WE OFFER
+          </span>
+          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white leading-tight">
+            {sectionTitle}
+          </h2>
+          <div className="w-12 h-1 bg-secondary mx-auto rounded-full"></div>
+          <p className="text-gray-400 text-sm md:text-base leading-relaxed">
+            {sectionSubtitle}
           </p>
         </div>
 
+        {/* 4 Columns Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Service 1: Livestreaming */}
-          <ServiceCard
-            icon={<Video className="w-10 h-10 text-secondary" />}
-            title="Livestreaming"
-            description="Professional multi-camera livestreaming for church services, concerts, and special events."
-            link="/services/livestreaming"
-          />
+          {gridServices.map((service) => (
+            <div
+              key={service.id}
+              className="bg-black/45 rounded-2xl border border-gray-900 overflow-hidden flex flex-col justify-between group hover:border-gray-850 hover:shadow-xl transition-all duration-350"
+            >
+              {/* Image & category badge */}
+              <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-900 border-b border-gray-950">
+                <img
+                  src={service.coverImage}
+                  alt={service.title}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                
+                {/* Category Badge bottom-left */}
+                <div className="absolute bottom-3 left-3">
+                  <span className="inline-block px-2.5 py-1 bg-secondary text-primary text-[10px] font-black uppercase tracking-wider rounded-md shadow-md">
+                    {(service.category || 'service').replace('_', ' ')}
+                  </span>
+                </div>
+              </div>
 
-          {/* Service 2: Graphics Design */}
-          <ServiceCard
-            icon={<Image className="w-10 h-10 text-secondary" />}
-            title="Graphics Design"
-            description="Custom graphics for social media, event promotions, church bulletins, and more."
-            link="/services/graphics-design"
-          />
+              {/* Service details */}
+              <div className="p-5 flex-1 flex flex-col justify-between text-left space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-extrabold text-base text-gray-150 leading-snug group-hover:text-white transition-colors line-clamp-2">
+                    {service.title}
+                  </h4>
+                  <p className="text-gray-400 text-xs leading-relaxed line-clamp-3">
+                    {service.description}
+                  </p>
+                </div>
 
-          {/* Service 3: Video Coverage */}
-          <ServiceCard
-            icon={<Music className="w-10 h-10 text-secondary" />}
-            title="Video Coverage"
-            description="Cinematic video production for events, testimonials, and ministry highlights."
-            link="/services/video-coverage"
-          />
-
-          {/* Service 4: Event Production */}
-          <ServiceCard
-            icon={<Calendar className="w-10 h-10 text-secondary" />}
-            title="Event Production"
-            description="End-to-end event management including venue setup, sound, lighting, and coordination."
-            link="/services/event-production"
-          />
+                <div className="pt-2 flex items-center justify-between border-t border-gray-900/60">
+                  <Link
+                    to={`/services/${service.slug}`}
+                    className="inline-flex items-center gap-1 text-secondary hover:text-white font-extrabold text-xs uppercase tracking-widest transition-colors"
+                  >
+                    Learn More →
+                  </Link>
+                  {service.price && (
+                    <span className="text-xs font-black text-gray-450 tracking-wider">
+                      {service.price}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
 
-        <div className="mt-12 text-center">
-          <Link to="/services" className="btn btn-primary">
-            View All Services
+        {gridServices.length === 0 && (
+          <div className="py-12 border border-dashed border-gray-850 rounded-2xl text-gray-500 text-sm">
+            No active professional services registered.
+          </div>
+        )}
+
+        {/* Action Button */}
+        <div className="pt-4">
+          <Link
+            to="/services"
+            className="inline-block border border-gray-800 hover:border-secondary text-gray-300 hover:text-white px-8 py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all bg-transparent"
+          >
+            Show More Services
           </Link>
         </div>
 
-        {/* Featured service showcase */}
-        <div className="mt-16">
-          <h3 className="text-xl font-bold mb-8 text-center">Featured Service Providers</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredServices.map((service) => (
-              <div key={service.id} className="card group">
-                <div className="relative h-48 overflow-hidden">
-                  <img
-                    src={service.coverImage}
-                    alt={service.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <span className="inline-block px-3 py-1 bg-secondary text-primary text-sm font-medium rounded-full mb-2">
-                      {(service.category || 'service').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                    </span>
-                    <h4 className="text-white font-bold">{service.title}</h4>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <div className="flex justify-between items-center mb-3">
-                    <div className="flex items-center">
-                      <div className="flex">
-                        {[...Array(5)].map((_, i) => (
-                          <svg
-                            key={i}
-                            className={`w-4 h-4 ${
-                              i < Math.floor(service.rating)
-                                ? 'text-secondary'
-                                : 'text-gray-300'
-                            }`}
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
-                        ))}
-                      </div>
-                      <span className="ml-1 text-sm text-gray-600 dark:text-gray-400">
-                        {(service.rating || 5).toFixed(1)}
-                      </span>
-                    </div>
-                    <span className="text-primary dark:text-white font-bold">
-                      {service.price}
-                    </span>
-                  </div>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
-                    {(service.description || '').length > 100
-                      ? `${(service.description || '').substring(0, 100)}...`
-                      : service.description}
-                  </p>
-                  <Link
-                    to={`/services/${service.slug}`}
-                    className="btn btn-outline w-full text-center"
-                  >
-                    Book Now
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </section>
   );
 };
-
-interface ServiceCardProps {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  link: string;
-}
-
-const ServiceCard: React.FC<ServiceCardProps> = ({
-  icon,
-  title,
-  description,
-  link,
-}) => (
-  <div className="card h-full transition-transform hover:-translate-y-2">
-    <div className="p-6 flex flex-col h-full">
-      <div className="bg-primary/5 dark:bg-primary/10 rounded-full w-16 h-16 flex items-center justify-center mb-4">
-        {icon}
-      </div>
-      <h3 className="text-xl font-bold mb-3">{title}</h3>
-      <p className="text-gray-600 dark:text-gray-300 mb-6 flex-grow">{description}</p>
-      <Link to={link} className="text-secondary font-medium hover:underline">
-        Learn More →
-      </Link>
-    </div>
-  </div>
-);
 
 export default FeaturedServices;

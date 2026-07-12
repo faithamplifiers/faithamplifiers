@@ -11,7 +11,6 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 declare global {
   interface Window {
     PaystackPop: any;
-    '
   }
 }
 
@@ -23,7 +22,7 @@ const PLANS = {
     features: [
       'Create and publish articles',
       'Custom username & avatar',
-      'Social media links on profile', 8o = ['l']
+      'Social media links on profile',
       'Community engagement',
       'Basic analytics dashboard',
     ],
@@ -154,6 +153,12 @@ const UpgradePlan: React.FC = () => {
       state: memberPlan.state || '',
       dateOfBirth: memberPlan.date_of_birth || '',
       govIdUrl: memberPlan.gov_id_url || '',
+      whatsapp: memberPlan.social_links?.whatsapp || '',
+      facebook: memberPlan.social_links?.facebook || '',
+      instagram: memberPlan.social_links?.instagram || '',
+      twitter: memberPlan.social_links?.twitter || '',
+      youtube: memberPlan.social_links?.youtube || '',
+      website: memberPlan.social_links?.website || '',
     };
 
     // PaystackPop.setup() requires plain function() — not async arrows
@@ -195,6 +200,14 @@ const UpgradePlan: React.FC = () => {
         state: verificationData.state,
         date_of_birth: verificationData.dateOfBirth || null,
         gov_id_url: verificationData.govIdUrl,
+        social_links: {
+          whatsapp: verificationData.whatsapp || '',
+          facebook: verificationData.facebook || '',
+          instagram: verificationData.instagram || '',
+          twitter: verificationData.twitter || '',
+          youtube: verificationData.youtube || '',
+          website: verificationData.website || '',
+        },
         verification_status: 'pending',
         paystack_reference: paystackRef,
         payment_status: paystackRef ? 'paid' : 'unpaid',
