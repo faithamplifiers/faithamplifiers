@@ -83,22 +83,22 @@ const UpcomingEvents: React.FC = () => {
     .slice(0, 2);
 
   return (
-    <section className="py-24 bg-[#0d0d0d] text-white border-b border-gray-900">
+    <section className="py-24 bg-white dark:bg-[#0d0d0d] text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-900">
       <div className="container-custom px-6 space-y-12">
         
         {/* Header Row */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-gray-900 pb-6 gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-gray-200 dark:border-gray-900 pb-6 gap-4">
           <div>
-            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight !text-gray-900 dark:!text-white">
               {sectionTitle}
             </h2>
-            <p className="text-gray-400 text-sm mt-2">
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
               {sectionSubtitle}
             </p>
           </div>
           <Link
             to="/events"
-            className="text-secondary hover:text-white font-extrabold text-sm uppercase tracking-widest inline-flex items-center gap-2 transition-colors"
+            className="text-secondary hover:text-primary dark:hover:text-white font-extrabold text-sm uppercase tracking-widest inline-flex items-center gap-2 transition-colors"
           >
             View All Events <ArrowRight className="w-4 h-4" />
           </Link>
@@ -110,9 +110,9 @@ const UpcomingEvents: React.FC = () => {
           {/* Left Column (2/3 width) - Big Featured Event Card */}
           <div className="lg:col-span-2">
             {mainEvent ? (
-              <div className="bg-black/45 rounded-3xl border border-gray-900 overflow-hidden flex flex-col h-full group hover:border-gray-850 transition-all duration-300">
+              <div className="bg-white dark:bg-black/45 rounded-3xl border border-gray-200 dark:border-gray-900 overflow-hidden flex flex-col h-full group hover:border-secondary/40 dark:hover:border-gray-850 transition-all duration-300">
                 {/* Event Image Banner with Zoom */}
-                <div className="relative aspect-[16/9] w-full overflow-hidden bg-gray-900 border-b border-gray-950">
+                <div className="relative aspect-[16/9] w-full overflow-hidden bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-950">
                   <img
                     src={mainEvent.coverImage}
                     alt={mainEvent.title}
@@ -136,15 +136,15 @@ const UpcomingEvents: React.FC = () => {
                 {/* Event details */}
                 <div className="p-6 md:p-8 flex-1 flex flex-col justify-between space-y-6">
                   <div className="space-y-4">
-                    <h3 className="text-2xl md:text-3xl font-extrabold text-white leading-snug group-hover:text-secondary transition-colors">
+                    <h3 className="text-2xl md:text-3xl font-extrabold !text-gray-900 dark:!text-white leading-snug group-hover:!text-secondary transition-colors">
                       <Link to={`/events/${mainEvent.slug}`}>{mainEvent.title}</Link>
                     </h3>
-                    <p className="text-gray-400 text-sm leading-relaxed line-clamp-3">
+                    <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed line-clamp-3">
                       {mainEvent.description}
                     </p>
 
                     {/* Metadata Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-secondary flex-shrink-0" />
                         <span>{format(new Date(mainEvent.startDate), 'EEEE, MMM dd')}</span>
@@ -160,7 +160,7 @@ const UpcomingEvents: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-gray-900/60">
+                  <div className="pt-4 border-t border-gray-100 dark:border-gray-900/60">
                     {mainEvent.ticketUrl ? (
                       <a
                         href={mainEvent.ticketUrl}
@@ -183,7 +183,7 @@ const UpcomingEvents: React.FC = () => {
 
               </div>
             ) : (
-              <div className="py-24 text-center border border-dashed border-gray-850 rounded-3xl text-gray-500 text-sm flex items-center justify-center">
+              <div className="py-24 text-center border border-dashed border-gray-300 dark:border-gray-850 rounded-3xl text-gray-400 dark:text-gray-500 text-sm flex items-center justify-center">
                 No events currently scheduled.
               </div>
             )}
@@ -196,10 +196,10 @@ const UpcomingEvents: React.FC = () => {
               {sidebarEvents.map(event => (
                 <div
                   key={event.id}
-                  className="bg-black/35 rounded-2xl border border-gray-900 p-4 flex gap-4 items-center group hover:border-gray-850 transition-all"
+                  className="bg-white dark:bg-black/35 rounded-2xl border border-gray-200 dark:border-gray-900 p-4 flex gap-4 items-center group hover:border-secondary/40 dark:hover:border-gray-850 transition-all"
                 >
                   {/* Thumbnail */}
-                  <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-900 border border-gray-850 flex-shrink-0">
+                  <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-850 flex-shrink-0">
                     <img
                       src={event.coverImage}
                       alt={event.title}
@@ -212,11 +212,11 @@ const UpcomingEvents: React.FC = () => {
                     <span className="inline-block text-[9px] font-black uppercase tracking-widest text-secondary">
                       {`[${(event.type || 'EVENT').toUpperCase()}]`}
                     </span>
-                    <h4 className="font-extrabold text-sm text-gray-200 group-hover:text-white leading-snug line-clamp-2 transition-colors">
+                    <h4 className="font-extrabold text-sm !text-gray-700 dark:!text-gray-200 group-hover:!text-secondary leading-snug line-clamp-2 transition-colors">
                       <Link to={`/events/${event.slug}`}>{event.title}</Link>
                     </h4>
                     
-                    <div className="space-y-0.5 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+                    <div className="space-y-0.5 text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="w-3 h-3 flex-shrink-0" />
                         <span>{format(new Date(event.startDate), 'MMM dd, yyyy')}</span>
@@ -231,7 +231,7 @@ const UpcomingEvents: React.FC = () => {
               ))}
 
               {sidebarEvents.length === 0 && (
-                <div className="text-center py-12 text-gray-600 text-xs">
+                <div className="text-center py-12 text-gray-400 dark:text-gray-600 text-xs">
                   No additional upcoming events.
                 </div>
               )}
@@ -241,7 +241,7 @@ const UpcomingEvents: React.FC = () => {
             <div className="pt-4 lg:pt-0">
               <Link
                 to="/events"
-                className="block text-center border border-gray-800 hover:border-secondary text-gray-300 hover:text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all bg-transparent"
+                className="block text-center border border-gray-300 dark:border-gray-800 hover:border-secondary text-gray-600 dark:text-gray-300 hover:text-secondary py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all bg-transparent"
               >
                 Explore All Events
               </Link>

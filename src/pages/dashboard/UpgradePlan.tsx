@@ -83,9 +83,14 @@ const UpgradePlan: React.FC = () => {
   });
 
   const currentPlan = memberPlan?.plan || 'blog_basics';
+  const isHigherPlanActiveOrPending = !!memberPlan && memberPlan.plan !== 'blog_basics';
 
   const handleBlogBasicsActivate = async () => {
     if (!user) return;
+    if (isHigherPlanActiveOrPending) {
+      toast.error('You cannot downgrade to Blog Basics while you have an active or pending higher plan.');
+      return;
+    }
     try {
       const { error } = await supabase.from('member_plans').upsert({
         user_id: user.id,
@@ -281,6 +286,8 @@ const UpgradePlan: React.FC = () => {
         <PlanCard
           {...PLANS.blog_basics}
           isCurrentPlan={currentPlan === 'blog_basics'}
+          ctaLabel={isHigherPlanActiveOrPending ? 'Downgrade Locked' : 'Get Started'}
+          disabled={isHigherPlanActiveOrPending}
           onCTAClick={handleBlogBasicsActivate}
         />
         <PlanCard

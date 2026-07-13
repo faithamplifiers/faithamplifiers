@@ -22,6 +22,7 @@ import {
 import Logo from '../../components/ui/Logo';
 import ThemeToggle from '../../components/ui/ThemeToggle';
 import ContactMessages from './ContactMessages';
+import ScrollToTop from '../../components/layout/ScrollToTop';
 
 // Admin dashboard components
 import DashboardHome from '../dashboard/DashboardHome';
@@ -128,6 +129,7 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+      <ScrollToTop />
       {/* ── Sidebar (Desktop) ── */}
       <aside className="hidden lg:flex flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0">
         {/* Branding */}

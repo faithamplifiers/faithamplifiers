@@ -174,9 +174,9 @@ const Contact: React.FC = () => {
   return (
     <div className="pt-20">
       {/* Hero Section */}
-      <div className="bg-primary text-white py-16">
+      <div className="bg-primary py-16">
         <div className="container-custom">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">{heroData.title}</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-4 !text-white">{heroData.title}</h1>
           <p className="text-xl text-gray-200 max-w-3xl">
             {heroData.subtitle}
           </p>

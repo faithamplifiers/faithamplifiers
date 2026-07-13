@@ -57,9 +57,9 @@ const News: React.FC = () => {
   return (
     <div className="pt-20">
       {/* Page header */}
-      <div className="bg-primary text-white py-16">
+      <div className="bg-primary py-16">
         <div className="container-custom">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">{heroTitle}</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-4 !text-white">{heroTitle}</h1>
           <p className="text-xl text-gray-200 max-w-3xl">
             {heroSubtitle}
           </p>

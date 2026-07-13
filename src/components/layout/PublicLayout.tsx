@@ -20,9 +20,12 @@ import ForgotPassword from '../../pages/auth/ForgotPassword';
 import ResetPassword from '../../pages/auth/ResetPassword';
 import EmailVerified from '../../pages/auth/EmailVerified';
 
+import ScrollToTop from './ScrollToTop';
+
 const PublicLayout: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen bg-light-gray dark:bg-gray-900">
+      <ScrollToTop />
       <Header />
       <main className="flex-grow">
         <Routes>

@@ -3,6 +3,7 @@ import { Upload, User, Phone, MapPin, Calendar, Shield, ArrowRight, ArrowLeft, C
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
+import ImageUploadInput from '../ui/ImageUploadInput';
 
 interface VerificationFormProps {
   onComplete: (formData: VerificationData) => void;
@@ -228,29 +229,12 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onComplete, onCance
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest mb-2">
-                Upload ID Document <span className="text-red-500">*</span>
-              </label>
-              <label className="block border-2 border-dashed border-gray-250 dark:border-gray-650 rounded-xl p-8 text-center cursor-pointer hover:border-secondary hover:bg-secondary/5 transition-all group">
-                <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleFileUpload} />
-                {uploading ? (
-                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-secondary border-t-transparent mx-auto" />
-                ) : formData.govIdUrl ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <CheckCircle className="w-10 h-10 text-green-500" />
-                    <p className="text-sm font-bold text-green-700 dark:text-green-400">Document uploaded successfully</p>
-                    <p className="text-[10px] text-gray-400">Click to replace</p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Upload className="w-6 h-6 text-gray-400 group-hover:text-secondary" />
-                    </div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Click to upload or drag and drop</p>
-                    <p className="text-[10px] text-gray-400">PNG, JPG, or PDF (Max 5MB)</p>
-                  </div>
-                )}
-              </label>
+              <ImageUploadInput
+                value={formData.govIdUrl}
+                onChange={url => setFormData(prev => ({ ...prev, govIdUrl: url }))}
+                label="Upload ID Document"
+                bucket="services"
+              />
             </div>
 
             <div className="flex gap-3 pt-4">

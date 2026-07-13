@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import ImageUploadInput from '../../components/ui/ImageUploadInput';
 
 // ─── Interfaces ───────────────────────────────────────────────────
 interface PageItem {
@@ -674,33 +675,16 @@ const PagesManager: React.FC = () => {
                                 </div>
                               </div>
                               <div>
-                                <label className={labelCls}>Background Image</label>
-                                <div className="flex items-center gap-3">
-                                  <input
-                                    type="text"
-                                    placeholder="https://..."
-                                    value={section.data.bg_image || ''}
-                                    onChange={e => {
-                                      const next = [...sections];
-                                      next[sIndex].data.bg_image = e.target.value;
-                                      setSections(next);
-                                    }}
-                                    className={`${inputCls} flex-1`}
-                                  />
-                                  <label className="btn btn-outline py-2.5 flex items-center gap-2 cursor-pointer text-xs">
-                                    <Upload className="w-4 h-4" />
-                                    <input
-                                      type="file"
-                                      accept="image/*"
-                                      className="hidden"
-                                      onChange={e => {
-                                        const file = e.target.files?.[0];
-                                        if (file) handleMediaUpload(sIndex, file);
-                                      }}
-                                    />
-                                    {uploadingState === `${sIndex}-bg` ? 'Uploading...' : 'Upload'}
-                                  </label>
-                                </div>
+                                <ImageUploadInput
+                                  value={section.data.bg_image || ''}
+                                  onChange={url => {
+                                    const next = [...sections];
+                                    next[sIndex].data.bg_image = url;
+                                    setSections(next);
+                                  }}
+                                  label="Background Image"
+                                  bucket="content"
+                                />
                               </div>
                             </>
                           )}
@@ -957,33 +941,16 @@ const PagesManager: React.FC = () => {
                                       />
                                     </div>
                                     <div>
-                                      <label className={labelCls}>Profile Image</label>
-                                      <div className="flex items-center gap-3">
-                                        <input
-                                          type="text"
-                                          placeholder="https://..."
-                                          value={member.image || ''}
-                                          onChange={e => {
-                                            const next = [...sections];
-                                            next[sIndex].data.members[mIdx].image = e.target.value;
-                                            setSections(next);
-                                          }}
-                                          className={`${inputCls} flex-1`}
-                                        />
-                                        <label className="btn btn-outline py-2.5 flex items-center gap-2 cursor-pointer text-xs">
-                                          <Upload className="w-4 h-4" />
-                                          <input
-                                            type="file"
-                                            accept="image/*"
-                                            className="hidden"
-                                            onChange={e => {
-                                              const file = e.target.files?.[0];
-                                              if (file) handleMediaUpload(sIndex, file, mIdx);
-                                            }}
-                                          />
-                                          {uploadingState === `${sIndex}-${mIdx}` ? 'Uploading...' : 'Upload'}
-                                        </label>
-                                      </div>
+                                      <ImageUploadInput
+                                        value={member.image || ''}
+                                        onChange={url => {
+                                          const next = [...sections];
+                                          next[sIndex].data.members[mIdx].image = url;
+                                          setSections(next);
+                                        }}
+                                        label="Profile Image"
+                                        bucket="content"
+                                      />
                                     </div>
                                   </div>
                                 ))}

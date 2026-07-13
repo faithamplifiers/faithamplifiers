@@ -83,6 +83,8 @@ const SidebarLink: React.FC<{ item: NavItem; onClick?: () => void }> = ({ item, 
   );
 };
 
+import ScrollToTop from '../../components/layout/ScrollToTop';
+
 const Dashboard: React.FC = () => {
   const { user, profile, signOut } = useAuthStore();
   const navigate = useNavigate();
@@ -107,7 +109,8 @@ const Dashboard: React.FC = () => {
 
   return (
     // Full-page layout — no public header, no footer
-    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-screen overflow-hidden bg-gray-55 dark:bg-gray-900">
+      <ScrollToTop />
       {/* ── Sidebar (Desktop) ── */}
       <aside className="hidden lg:flex flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0">
         {/* Branding */}

@@ -317,7 +317,7 @@ const Directory: React.FC = () => {
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 text-white text-xs font-bold uppercase tracking-widest">
               <ShieldCheck className="w-4 h-4 text-secondary" /> Verified Listings
             </span>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight max-w-4xl mx-auto leading-tight">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight max-w-4xl mx-auto leading-tight !text-white">
               {heroTitle}
             </h1>
             <p className="text-lg md:text-xl text-gray-200 max-w-2xl mx-auto font-medium">

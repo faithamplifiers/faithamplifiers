@@ -74,7 +74,7 @@ const FeaturedServices: React.FC = () => {
   }
 
   return (
-    <section className="py-24 bg-[#111111] text-white border-b border-gray-900">
+    <section className="py-24 bg-gray-50 dark:bg-[#111111] text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-900">
       <div className="container-custom px-6 text-center space-y-16">
         
         {/* Centered Header */}
@@ -82,11 +82,11 @@ const FeaturedServices: React.FC = () => {
           <span className="text-xs font-black uppercase tracking-widest text-secondary">
             WHAT WE OFFER
           </span>
-          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white leading-tight">
+          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight !text-gray-900 dark:!text-white leading-tight">
             {sectionTitle}
           </h2>
           <div className="w-12 h-1 bg-secondary mx-auto rounded-full"></div>
-          <p className="text-gray-400 text-sm md:text-base leading-relaxed">
+          <p className="text-gray-500 dark:text-gray-400 text-sm md:text-base leading-relaxed">
             {sectionSubtitle}
           </p>
         </div>
@@ -96,10 +96,10 @@ const FeaturedServices: React.FC = () => {
           {gridServices.map((service) => (
             <div
               key={service.id}
-              className="bg-black/45 rounded-2xl border border-gray-900 overflow-hidden flex flex-col justify-between group hover:border-gray-850 hover:shadow-xl transition-all duration-350"
+              className="bg-white dark:bg-black/45 rounded-2xl border border-gray-200 dark:border-gray-900 overflow-hidden flex flex-col justify-between group hover:border-secondary/40 dark:hover:border-gray-850 hover:shadow-xl transition-all duration-350"
             >
               {/* Image & category badge */}
-              <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-900 border-b border-gray-950">
+              <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-950">
                 <img
                   src={service.coverImage}
                   alt={service.title}
@@ -117,15 +117,15 @@ const FeaturedServices: React.FC = () => {
               {/* Service details */}
               <div className="p-5 flex-1 flex flex-col justify-between text-left space-y-4">
                 <div className="space-y-2">
-                  <h4 className="font-extrabold text-base text-gray-150 leading-snug group-hover:text-white transition-colors line-clamp-2">
+                  <h4 className="font-extrabold text-base !text-gray-800 dark:!text-gray-150 leading-snug group-hover:!text-secondary transition-colors line-clamp-2">
                     {service.title}
                   </h4>
-                  <p className="text-gray-400 text-xs leading-relaxed line-clamp-3">
+                  <p className="text-gray-500 dark:text-gray-400 text-xs leading-relaxed line-clamp-3">
                     {service.description}
                   </p>
                 </div>
 
-                <div className="pt-2 flex items-center justify-between border-t border-gray-900/60">
+                <div className="pt-2 flex items-center justify-between border-t border-gray-100 dark:border-gray-900/60">
                   <Link
                     to={`/services/${service.slug}`}
                     className="inline-flex items-center gap-1 text-secondary hover:text-white font-extrabold text-xs uppercase tracking-widest transition-colors"
@@ -133,7 +133,7 @@ const FeaturedServices: React.FC = () => {
                     Learn More →
                   </Link>
                   {service.price && (
-                    <span className="text-xs font-black text-gray-450 tracking-wider">
+                    <span className="text-xs font-black text-gray-500 dark:text-gray-450 tracking-wider">
                       {service.price}
                     </span>
                   )}
@@ -144,7 +144,7 @@ const FeaturedServices: React.FC = () => {
         </div>
 
         {gridServices.length === 0 && (
-          <div className="py-12 border border-dashed border-gray-850 rounded-2xl text-gray-500 text-sm">
+          <div className="py-12 border border-dashed border-gray-200 dark:border-gray-850 rounded-2xl text-gray-400 dark:text-gray-500 text-sm">
             No active professional services registered.
           </div>
         )}
@@ -153,7 +153,7 @@ const FeaturedServices: React.FC = () => {
         <div className="pt-4">
           <Link
             to="/services"
-            className="inline-block border border-gray-800 hover:border-secondary text-gray-300 hover:text-white px-8 py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all bg-transparent"
+            className="inline-block border border-gray-300 dark:border-gray-800 hover:border-secondary text-gray-600 dark:text-gray-300 hover:text-secondary px-8 py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all bg-transparent"
           >
             Show More Services
           </Link>

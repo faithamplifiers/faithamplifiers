@@ -20,13 +20,20 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
+import IntegrationsSettings from './IntegrationsSettings';
+import CloudinarySetupGuide from './CloudinarySetupGuide';
 
 const inputClass =
   'w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-secondary focus:border-transparent transition-all outline-none';
 
+import { useLocation } from 'react-router-dom';
+
 const Settings: React.FC = () => {
   const { user, profile, refreshProfile, signOut } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications'>('profile');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'integrations' | 'cloudinary-guide'>(
+    (location.state as any)?.activeTab || 'profile'
+  );
 
   // Profile tab state
   const [username, setUsername] = useState(profile?.username || '');
@@ -127,6 +134,18 @@ const Settings: React.FC = () => {
                 onClick={() => setActiveTab('notifications')}
                 icon={Bell}
                 label="Communication"
+              />
+              <SettingsNavLink 
+                active={activeTab === 'integrations'} 
+                onClick={() => setActiveTab('integrations')}
+                icon={Cloud}
+                label="Cloudinary BYOK"
+              />
+              <SettingsNavLink 
+                active={activeTab === 'cloudinary-guide'} 
+                onClick={() => setActiveTab('cloudinary-guide')}
+                icon={LifeBuoy}
+                label="Cloudinary Guide"
               />
             </nav>
           </div>
@@ -319,6 +338,14 @@ const Settings: React.FC = () => {
                   </div>
                </div>
             </div>
+          )}
+
+          {activeTab === 'integrations' && (
+            <IntegrationsSettings onNavigateToGuide={() => setActiveTab('cloudinary-guide')} />
+          )}
+
+          {activeTab === 'cloudinary-guide' && (
+            <CloudinarySetupGuide />
           )}
         </div>
 

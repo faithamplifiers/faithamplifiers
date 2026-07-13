@@ -63,9 +63,9 @@ const Services: React.FC = () => {
   return (
     <div className="pt-20">
       {/* Page header */}
-      <div className="bg-primary text-white py-16">
+      <div className="bg-primary py-16">
         <div className="container-custom">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">{heroTitle}</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-4 !text-white">{heroTitle}</h1>
           <p className="text-xl text-gray-200 max-w-3xl">
             {heroSubtitle}
           </p>
@@ -263,7 +263,7 @@ const Services: React.FC = () => {
       {/* Call to action */}
       <div className="bg-primary text-white py-16">
         <div className="container-custom text-center">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">Need a Custom Solution?</h2>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4 !text-white">Need a Custom Solution?</h2>
           <p className="text-xl text-gray-200 max-w-2xl mx-auto mb-8">
             Contact us to discuss your specific requirements and get a personalized quote for your ministry or event.
           </p>

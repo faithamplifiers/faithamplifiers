@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import PromptDialog from '../../components/ui/PromptDialog';
+import CloudinaryConfigRequiredModal from '../../components/ui/CloudinaryConfigRequiredModal';
 import { useDropzone } from 'react-dropzone';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
+import { useCloudinaryUpload } from '../../lib/useCloudinaryUpload';
 import {
   Calendar,
   Clock,
@@ -25,7 +27,8 @@ import {
   Check,
   X,
   Search,
-  Crown
+  Crown,
+  Cloud,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -60,6 +63,7 @@ const currencies = [
 
 const EventManager = () => {
   const { user, profile } = useAuthStore();
+  const navigate = useNavigate();
   const actualIsAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
   const [view, setView] = useState<'list' | 'editor' | 'categories'>('list');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -73,12 +77,16 @@ const EventManager = () => {
   const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
   const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null);
   const [editCategoryData, setEditCategoryData] = useState<{id: string, name: string} | null>(null);
+  const [showCloudinaryGate, setShowCloudinaryGate] = useState(false);
   const queryClient = useQueryClient();
 
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
   const [unsavedAction, setUnsavedAction] = useState<(() => void) | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // BYOK Cloudinary hook
+  const { uploadFile: cloudinaryUploadFile, isCloudinaryEnabled, loading: cloudinaryLoading } = useCloudinaryUpload();
 
   const { data: memberPlan } = useQuery({
     queryKey: ['member_plan', user?.id],
@@ -169,22 +177,27 @@ const EventManager = () => {
 
   const handleCreateEvent = async (data: EventForm) => {
     if (!user) return;
+    // Gate non-admin users who haven't configured Cloudinary
+    if (!actualIsAdmin && !isCloudinaryEnabled) {
+      setShowCloudinaryGate(true);
+      return;
+    }
 
     try {
       setIsSubmitting(true);
       
       let coverImageUrl = '';
       if (data.coverImage) {
-        const fileExt = data.coverImage.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `event-covers/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('events')
-          .upload(filePath, data.coverImage);
-
-        if (uploadError) throw uploadError;
-        coverImageUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/events/${filePath}`;
+        try {
+          coverImageUrl = await cloudinaryUploadFile(data.coverImage, 'events');
+        } catch (e: any) {
+          if (e.message === 'CLOUDINARY_QUOTA_EXHAUSTED') {
+            toast.error('Your Cloudinary storage quota is exhausted. Please upgrade your Cloudinary plan.');
+            setIsSubmitting(false);
+            return;
+          }
+          throw e;
+        }
       }
 
       if (editingId) {
@@ -283,6 +296,11 @@ const EventManager = () => {
   };
 
   const editEvent = async (event: any) => {
+    // Gate non-admin users who haven't configured Cloudinary
+    if (!actualIsAdmin && !isCloudinaryEnabled) {
+      setShowCloudinaryGate(true);
+      return;
+    }
     setEditingId(event.id);
     setValue('title', event.title);
     setValue('description', event.description);
@@ -449,6 +467,11 @@ const EventManager = () => {
 
   return (
     <div className="space-y-6">
+      <CloudinaryConfigRequiredModal
+        isOpen={showCloudinaryGate}
+        onClose={() => setShowCloudinaryGate(false)}
+        onNavigateToSettings={() => navigate('/dashboard/settings', { state: { activeTab: 'cloudinary-guide' } })}
+      />
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Event Manager</h1>
@@ -501,6 +524,11 @@ const EventManager = () => {
           <button
             onClick={() => handleNavigation(() => {
               if (view === 'list') {
+                // Gate non-admin users without Cloudinary configured
+                if (!actualIsAdmin && !cloudinaryLoading && !isCloudinaryEnabled) {
+                  setShowCloudinaryGate(true);
+                  return;
+                }
                 setView('editor');
                 setEditingId(null);
                 reset();
@@ -679,7 +707,13 @@ const EventManager = () => {
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Cover Image</label>
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Cover Image</label>
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${isCloudinaryEnabled ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-500'}`}>
+                      <Cloud className="w-3 h-3" />
+                      {isCloudinaryEnabled ? 'Cloudinary Active' : 'Supabase Storage'}
+                    </span>
+                  </div>
                   {coverImagePreview ? (
                     <div className="relative border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden text-center lg:min-h-[240px] flex flex-col justify-center bg-gray-50 dark:bg-gray-800">
                       <img src={coverImagePreview} alt="Cover" className="max-h-[240px] w-auto mx-auto object-contain" />

@@ -94,7 +94,7 @@ const DynamicPage: React.FC = () => {
           {/* Title block */}
           <div className="bg-primary py-12 md:py-16 text-white text-left">
             <div className="container-custom max-w-4xl">
-              <h1 className="text-3xl md:text-5xl font-black">{page.title}</h1>
+              <h1 className="text-3xl md:text-5xl font-black !text-white">{page.title}</h1>
             </div>
           </div>
 

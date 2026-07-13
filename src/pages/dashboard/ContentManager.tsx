@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useEditor, EditorContent } from '@tiptap/react';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import PromptDialog from '../../components/ui/PromptDialog';
+import CloudinaryConfigRequiredModal from '../../components/ui/CloudinaryConfigRequiredModal';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
@@ -13,6 +15,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
+import { useCloudinaryUpload } from '../../lib/useCloudinaryUpload';
 import {
   Bold,
   Italic,
@@ -43,6 +46,7 @@ import {
   Youtube as YoutubeIcon,
   Video as VideoIcon,
   Music as AudioIcon,
+  Cloud,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -63,6 +67,7 @@ interface ContentManagerProps {
 
 const ContentManager: React.FC<ContentManagerProps> = ({ isAdmin = false }) => {
   const { user, profile } = useAuthStore();
+  const navigate = useNavigate();
   const actualIsAdmin = isAdmin || profile?.role === 'admin' || profile?.role === 'super_admin';
   const [view, setView] = useState<'list' | 'editor' | 'categories'>('list');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -73,6 +78,7 @@ const ContentManager: React.FC<ContentManagerProps> = ({ isAdmin = false }) => {
   const [deleteArticleId, setDeleteArticleId] = useState<string | null>(null);
   const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null);
   const [editCategoryData, setEditCategoryData] = useState<{id: string, name: string} | null>(null);
+  const [showCloudinaryGate, setShowCloudinaryGate] = useState(false);
   
   const [existingImage, setExistingImage] = useState<string | null>(null);
   const [existingVideo, setExistingVideo] = useState<string | null>(null);
@@ -82,6 +88,9 @@ const ContentManager: React.FC<ContentManagerProps> = ({ isAdmin = false }) => {
   const [unsavedAction, setUnsavedAction] = useState<(() => void) | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+
+  // BYOK Cloudinary hook — non-admins must have this configured to post
+  const { uploadFile: cloudinaryUploadFile, isCloudinaryEnabled, loading: cloudinaryLoading } = useCloudinaryUpload();
 
   const queryClient = useQueryClient();
 
@@ -175,23 +184,53 @@ const ContentManager: React.FC<ContentManagerProps> = ({ isAdmin = false }) => {
 
   const handlePublish = async (data: ContentForm) => {
     if (!editor || !user) return;
+    // Gate non-admin users who haven't configured Cloudinary
+    if (!actualIsAdmin && !isCloudinaryEnabled) {
+      setShowCloudinaryGate(true);
+      return;
+    }
     try {
       setIsPublishing(true);
       let imageUrl = '';
       let videoUrl = '';
       let audioUrl = '';
-      
-      const uploadFile = async (file: File, prefix: string) => {
-        const fileExt = file.name.split('.').pop();
-        const filePath = `content-media/${prefix}_${Math.random()}.${fileExt}`;
-        const { error } = await supabase.storage.from('content').upload(filePath, file);
-        if (error) throw error;
-        return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/content/${filePath}`;
-      };
 
-      if (data.imageFile?.[0]) imageUrl = await uploadFile(data.imageFile[0], 'img');
-      if (data.videoFile?.[0]) videoUrl = await uploadFile(data.videoFile[0], 'vid');
-      if (data.audioFile?.[0]) audioUrl = await uploadFile(data.audioFile[0], 'aud');
+      if (data.imageFile?.[0]) {
+        try {
+          imageUrl = await cloudinaryUploadFile(data.imageFile[0], 'content');
+        } catch (e: any) {
+          if (e.message === 'CLOUDINARY_QUOTA_EXHAUSTED') {
+            toast.error('Your Cloudinary storage quota is exhausted. Please upgrade your Cloudinary plan to continue uploading.');
+            setIsPublishing(false);
+            return;
+          }
+          throw e;
+        }
+      }
+      if (data.videoFile?.[0]) {
+        try {
+          videoUrl = await cloudinaryUploadFile(data.videoFile[0], 'content');
+        } catch (e: any) {
+          if (e.message === 'CLOUDINARY_QUOTA_EXHAUSTED') {
+            toast.error('Your Cloudinary storage quota is exhausted. Please upgrade your Cloudinary plan.');
+            setIsPublishing(false);
+            return;
+          }
+          throw e;
+        }
+      }
+      if (data.audioFile?.[0]) {
+        try {
+          audioUrl = await cloudinaryUploadFile(data.audioFile[0], 'content');
+        } catch (e: any) {
+          if (e.message === 'CLOUDINARY_QUOTA_EXHAUSTED') {
+            toast.error('Your Cloudinary storage quota is exhausted. Please upgrade your Cloudinary plan.');
+            setIsPublishing(false);
+            return;
+          }
+          throw e;
+        }
+      }
 
       let finalCategory = data.category;
       if (!isAdmin && !finalCategory) {
@@ -373,6 +412,11 @@ const ContentManager: React.FC<ContentManagerProps> = ({ isAdmin = false }) => {
 
   return (
     <div className="space-y-6">
+      <CloudinaryConfigRequiredModal
+        isOpen={showCloudinaryGate}
+        onClose={() => setShowCloudinaryGate(false)}
+        onNavigateToSettings={() => navigate('/dashboard/settings', { state: { activeTab: 'cloudinary-guide' } })}
+      />
       <div className="flex justify-between items-center bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
         <div>
           <h1 className="text-2xl font-black text-gray-900 dark:text-white">Content Manager</h1>
@@ -393,6 +437,11 @@ const ContentManager: React.FC<ContentManagerProps> = ({ isAdmin = false }) => {
           <button
             onClick={() => handleNavigation(() => {
               if (view === 'list') {
+                // Gate non-admin users without Cloudinary configured
+                if (!actualIsAdmin && !cloudinaryLoading && !isCloudinaryEnabled) {
+                  setShowCloudinaryGate(true);
+                  return;
+                }
                 setView('editor');
                 setEditingId(null);
                 reset();
@@ -565,7 +614,13 @@ const ContentManager: React.FC<ContentManagerProps> = ({ isAdmin = false }) => {
                   </div>
                   
                   <div className="mt-2 p-4 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/10">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-4 px-1">Visuals / Media Cover (Optional)</label>
+                    <div className="flex items-center justify-between mb-4 px-1">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Visuals / Media Cover (Optional)</label>
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${isCloudinaryEnabled ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-500'}`}>
+                        <Cloud className="w-3 h-3" />
+                        {isCloudinaryEnabled ? 'Cloudinary Active' : 'Supabase Storage'}
+                      </span>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-1">
                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-tight block">Cover Image</label>

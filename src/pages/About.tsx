@@ -110,9 +110,9 @@ const About: React.FC = () => {
   return (
     <div className="pt-20">
       {/* Hero Section */}
-      <div className="bg-primary text-white py-16">
+      <div className="bg-primary py-16">
         <div className="container-custom">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">{hero?.title}</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-4 !text-white">{hero?.title}</h1>
           <p className="text-xl text-gray-200 max-w-3xl">{hero?.subtitle}</p>
         </div>
       </div>
@@ -177,7 +177,7 @@ const About: React.FC = () => {
       {/* Call to Action */}
       <section className="py-16 bg-primary text-white">
         <div className="container-custom text-center">
-          <h2 className="text-3xl font-bold mb-4">{joinMission?.title}</h2>
+          <h2 className="text-3xl font-bold mb-4 !text-white">{joinMission?.title}</h2>
           <p className="text-xl text-gray-200 mb-8 max-w-2xl mx-auto">{joinMission?.text}</p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link to="/register" className="btn bg-secondary text-primary hover:bg-secondary-light">

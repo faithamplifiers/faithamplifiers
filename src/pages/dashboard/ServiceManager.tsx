@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import PromptDialog from '../../components/ui/PromptDialog';
+import CloudinaryConfigRequiredModal from '../../components/ui/CloudinaryConfigRequiredModal';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
+import { useCloudinaryUpload } from '../../lib/useCloudinaryUpload';
 import {
   Upload,
   Save,
@@ -22,7 +24,8 @@ import {
   X,
   Search,
   Calendar,
-  Crown
+  Crown,
+  Cloud
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -46,6 +49,7 @@ const currencies = [
 
 const ServiceManager = () => {
   const { user, profile } = useAuthStore();
+  const navigate = useNavigate();
   const actualIsAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
   const [view, setView] = useState<'list' | 'editor' | 'categories' | 'bookings'>('list');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -58,7 +62,11 @@ const ServiceManager = () => {
   const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
   const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null);
   const [editCategoryData, setEditCategoryData] = useState<{id: string, name: string} | null>(null);
+  const [showCloudinaryGate, setShowCloudinaryGate] = useState(false);
   const queryClient = useQueryClient();
+
+  // Cloudinary BYOK Upload Hook
+  const { uploadFile: cloudinaryUploadFile, isCloudinaryEnabled, loading: cloudinaryLoading } = useCloudinaryUpload();
 
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
   const [unsavedAction, setUnsavedAction] = useState<(() => void) | null>(null);
@@ -177,23 +185,28 @@ const ServiceManager = () => {
 
   const handleCreateService = async (data: ServiceForm) => {
     if (!user) return;
+    // Gate non-admin users who haven't configured Cloudinary
+    if (!actualIsAdmin && !isCloudinaryEnabled) {
+      setShowCloudinaryGate(true);
+      return;
+    }
 
     try {
       setIsSubmitting(true);
 
-      // Upload portfolio images
+      // Upload portfolio images using Cloudinary BYOK or Supabase Fallback
       const imageUrls = await Promise.all(
         portfolioImages.map(async (file) => {
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${Math.random()}.${fileExt}`;
-          const filePath = `service-portfolio/${fileName}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from('services')
-            .upload(filePath, file);
-
-          if (uploadError) throw uploadError;
-          return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/services/${filePath}`;
+          try {
+            return await cloudinaryUploadFile(file, 'services');
+          } catch (e: any) {
+            if (e.message === 'CLOUDINARY_QUOTA_EXHAUSTED') {
+              toast.error('Your Cloudinary storage quota is exhausted. Please upgrade your Cloudinary plan.');
+              setIsSubmitting(false);
+              throw e;
+            }
+            throw e;
+          }
         })
       );
 
@@ -239,6 +252,11 @@ const ServiceManager = () => {
   };
 
   const editService = (service: any) => {
+    // Gate non-admin users who haven't configured Cloudinary
+    if (!actualIsAdmin && !isCloudinaryEnabled) {
+      setShowCloudinaryGate(true);
+      return;
+    }
     setEditingId(service.id);
     setValue('title', service.title);
     setValue('description', service.description);
@@ -404,6 +422,11 @@ const ServiceManager = () => {
 
   return (
     <div className="space-y-6">
+      <CloudinaryConfigRequiredModal
+        isOpen={showCloudinaryGate}
+        onClose={() => setShowCloudinaryGate(false)}
+        onNavigateToSettings={() => navigate('/dashboard/settings', { state: { activeTab: 'cloudinary-guide' } })}
+      />
       <div className="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Service Manager</h1>
@@ -449,6 +472,11 @@ const ServiceManager = () => {
           <button
             onClick={() => handleNavigation(() => {
               if (view === 'list') {
+                // Gate non-admin users without Cloudinary configured
+                if (!actualIsAdmin && !cloudinaryLoading && !isCloudinaryEnabled) {
+                  setShowCloudinaryGate(true);
+                  return;
+                }
                 setView('editor');
                 setEditingId(null);
                 reset();
@@ -620,7 +648,13 @@ const ServiceManager = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Portfolio Images</label>
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Portfolio Images</label>
+              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${isCloudinaryEnabled ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-500'}`}>
+                <Cloud className="w-3 h-3" />
+                {isCloudinaryEnabled ? 'Cloudinary Active' : 'Supabase Storage'}
+              </span>
+            </div>
             <div
               {...getRootProps()}
               className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-8 text-center cursor-pointer hover:border-secondary hover:bg-secondary/5 transition-all group"

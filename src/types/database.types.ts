@@ -316,6 +316,38 @@ export interface Database {
           updated_at?: string
         }
       }
+      user_integrations: {
+        Row: {
+          id: string
+          user_id: string
+          cloudinary_cloud_name: string | null
+          cloudinary_api_key: string | null
+          cloudinary_upload_preset: string | null
+          cloudinary_enabled: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          cloudinary_cloud_name?: string | null
+          cloudinary_api_key?: string | null
+          cloudinary_upload_preset?: string | null
+          cloudinary_enabled?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          cloudinary_cloud_name?: string | null
+          cloudinary_api_key?: string | null
+          cloudinary_upload_preset?: string | null
+          cloudinary_enabled?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

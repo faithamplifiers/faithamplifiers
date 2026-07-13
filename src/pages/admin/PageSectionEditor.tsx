@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import ImageUploadInput from '../../components/ui/ImageUploadInput';
 
 // ─── Types ────────────────────────────────────────────────────────
 interface SectionField {
@@ -577,6 +578,13 @@ const PageSectionEditor: React.FC<PageSectionEditorProps> = ({ config }) => {
                     <option key={sv.id} value={sv.id}>{sv.title}</option>
                   ))}
                 </select>
+              ) : field.type === 'url' && (field.key.includes('image') || field.key.includes('logo') || field.key.includes('banner')) ? (
+                <ImageUploadInput
+                  value={sectionData[section.key]?.[field.key] || ''}
+                  onChange={val => updateField(section.key, field.key, val)}
+                  label={field.label}
+                  bucket="content"
+                />
               ) : (
                 <input
                   type={field.type}

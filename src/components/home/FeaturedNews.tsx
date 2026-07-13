@@ -78,8 +78,30 @@ const FeaturedNews: React.FC = () => {
     .slice(0, 3) || [];
 
   return (
-    <section className="py-24 bg-[#0a0a0a] text-white border-b border-gray-900">
-      <div className="container-custom px-6">
+    <section className="py-24 bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-900">
+      <div className="container-custom px-6 space-y-12">
+
+        {/* Section Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-gray-200 dark:border-gray-900 pb-6 gap-4">
+          <div>
+            <span className="text-xs font-black uppercase tracking-widest text-secondary block mb-2">
+              GOSPEL COMMUNITY
+            </span>
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight !text-gray-900 dark:!text-white">
+              {sectionTitle}
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
+              {sectionSubtitle}
+            </p>
+          </div>
+          <Link
+            to="/news"
+            className="text-secondary hover:text-primary dark:hover:text-white font-extrabold text-sm uppercase tracking-widest inline-flex items-center gap-2 transition-colors"
+          >
+            View All News <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
         {/* News Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
           
@@ -88,7 +110,7 @@ const FeaturedNews: React.FC = () => {
             {mainArticle ? (
               <div className="group block space-y-5">
                 {/* Big full-bleed image container with hover zooming */}
-                <div className="relative aspect-[16/10] w-full rounded-2xl overflow-hidden bg-gray-900 border border-gray-800">
+                <div className="relative aspect-[16/10] w-full rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
                   <img
                     src={mainArticle.coverImage}
                     alt={mainArticle.title}
@@ -106,7 +128,7 @@ const FeaturedNews: React.FC = () => {
 
                 {/* Article Info */}
                 <div className="space-y-3">
-                  <h3 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-tight group-hover:text-secondary transition-colors">
+                  <h3 className="text-3xl md:text-4xl font-extrabold tracking-tight !text-white leading-tight group-hover:text-secondary transition-colors">
                     <Link to={`/news/${mainArticle.slug}`}>{mainArticle.title}</Link>
                   </h3>
                   
@@ -133,16 +155,16 @@ const FeaturedNews: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="py-20 text-center border border-dashed border-gray-850 rounded-2xl text-gray-500 text-sm">
+              <div className="py-20 text-center border border-dashed border-gray-300 dark:border-gray-850 rounded-2xl text-gray-400 dark:text-gray-500 text-sm">
                 No gospel news articles currently published.
               </div>
             )}
           </div>
 
           {/* Right Column (1/3 width) - Stacked Recent News list */}
-          <div className="lg:col-span-1 space-y-6 lg:border-l lg:border-gray-900 lg:pl-10">
+          <div className="lg:col-span-1 space-y-6 lg:border-l lg:border-gray-200 dark:lg:border-gray-900 lg:pl-10">
             {/* Header */}
-            <div className="flex items-center gap-2 border-b border-gray-900 pb-3">
+            <div className="flex items-center gap-2 border-b border-gray-200 dark:border-gray-900 pb-3">
               <span className="w-1 h-5 bg-secondary rounded-full"></span>
               <h4 className="text-sm font-black uppercase tracking-widest text-secondary">
                 Recent News
@@ -155,10 +177,10 @@ const FeaturedNews: React.FC = () => {
                 <Link
                   key={article.id}
                   to={`/news/${article.slug}`}
-                  className="flex gap-4 group items-start hover:bg-white/[0.02] p-2 -m-2 rounded-xl transition-all"
+                  className="flex gap-4 group items-start hover:bg-gray-50 dark:hover:bg-white/[0.02] p-2 -m-2 rounded-xl transition-all"
                 >
                   {/* Thumbnail */}
-                  <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-900 border border-gray-800 flex-shrink-0">
+                  <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 flex-shrink-0">
                     <img
                       src={article.coverImage}
                       alt={article.title}
@@ -171,10 +193,10 @@ const FeaturedNews: React.FC = () => {
                     <span className="inline-block text-[10px] font-black uppercase tracking-wider text-secondary">
                       {article.category.replace('-', ' ')}
                     </span>
-                    <h5 className="font-extrabold text-sm text-gray-150 group-hover:text-white leading-snug line-clamp-2 transition-colors">
+                    <h5 className="font-extrabold text-sm !text-gray-700 dark:!text-gray-150 group-hover:!text-secondary leading-snug line-clamp-2 transition-colors">
                       {article.title}
                     </h5>
-                    <div className="flex items-center gap-1.5 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+                    <div className="flex items-center gap-1.5 text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">
                       <Clock className="w-3 h-3" />
                       <span>
                         {format(new Date(article.publishedAt), 'MMM dd, yyyy')}
@@ -185,7 +207,7 @@ const FeaturedNews: React.FC = () => {
               ))}
 
               {sidebarArticles.length === 0 && (
-                <div className="text-center py-6 text-gray-600 text-xs">
+                <div className="text-center py-6 text-gray-400 dark:text-gray-600 text-xs">
                   No additional recent news.
                 </div>
               )}
@@ -195,7 +217,7 @@ const FeaturedNews: React.FC = () => {
             <div className="pt-4">
               <Link
                 to="/news"
-                className="block text-center border border-gray-800 hover:border-secondary text-gray-300 hover:text-white py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all bg-transparent"
+                className="block text-center border border-gray-300 dark:border-gray-800 hover:border-secondary text-gray-600 dark:text-gray-300 hover:text-secondary py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all bg-transparent"
               >
                 Show More News
               </Link>
